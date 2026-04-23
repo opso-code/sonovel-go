@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/so-novel/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/model"
 )
 
 func LoadRules(path string) ([]model.Rule, error) {

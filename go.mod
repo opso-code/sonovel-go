@@ -1,4 +1,4 @@
-module github.com/so-novel/sonovel-go
+module github.com/opso-code/sonovel-go
 
 go 1.24
 

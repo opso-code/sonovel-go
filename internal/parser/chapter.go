@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/so-novel/sonovel-go/internal/httpx"
-	"github.com/so-novel/sonovel-go/internal/model"
-	"github.com/so-novel/sonovel-go/internal/util"
+	"github.com/opso-code/sonovel-go/internal/httpx"
+	"github.com/opso-code/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/util"
 )
 
 type ChapterParser struct {

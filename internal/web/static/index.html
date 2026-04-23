@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sonovel-go</title>
+  <style>
+    :root { --bg:#f7f8fb; --panel:#fff; --text:#1f2937; --line:#e5e7eb; --pri:#2563eb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--text); background:var(--bg); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 14px; font-size: 28px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    input, select, button { padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:14px; }
+    input, select { background:#fff; }
+    button { background:var(--pri); color:#fff; border-color:var(--pri); cursor:pointer; }
+    button.secondary { background:#fff; color:#111827; border-color:#d1d5db; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
+    th,td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:left; vertical-align:top; }
+    tbody tr:hover { background:#f8fafc; }
+    .muted { color:#6b7280; font-size:12px; }
+    .ok { color:#059669; }
+    .err { color:#dc2626; }
+    .book-title { font-weight:600; margin-bottom:2px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #d1d5db; background:#f9fafb; color:#374151; }
+    .cell-sub { font-size:12px; color:#6b7280; margin-top:4px; }
+    .ellipsis { max-width:360px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .empty { text-align:center; color:#6b7280; padding:18px 8px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>sonovel-go Web UI</h1>
+
+  <div class="panel">
+    <div class="row">
+      <select id="source"></select>
+      <input id="kw" placeholder="输入书名或作者" style="min-width:260px;flex:1" />
+      <button id="searchBtn">搜索</button>
+    </div>
+    <div id="searchMsg" class="muted" style="margin-top:8px"></div>
+    <table id="resultTable" style="display:none">
+      <thead><tr><th>#</th><th>作品</th><th>最新章节</th><th>来源/状态</th><th>操作</th></tr></thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <select id="fmt">
+        <option value="txt">TXT</option>
+        <option value="epub">EPUB</option>
+        <option value="html">HTML</option>
+      </select>
+      <input id="concurrency" type="number" min="1" value="12" style="width:110px" />
+      <input id="start" type="number" min="1" value="1" style="width:110px" />
+      <input id="end" type="number" min="0" value="0" style="width:110px" />
+      <button id="refreshBtn" class="secondary">刷新文件列表</button>
+    </div>
+    <div id="downloadMsg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="panel">
+    <h3 style="margin:0 0 8px">已下载文件</h3>
+    <table>
+      <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>时间</th><th>操作</th></tr></thead>
+      <tbody id="fileBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const state = { items: [] }
+
+function fmtSize(n) {
+  if (n < 1024) return n + ' B'
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB'
+  return (n / 1024 / 1024).toFixed(1) + ' MB'
+}
+function setMsg(id, text, cls='muted') {
+  const el = document.getElementById(id)
+  el.className = cls
+  el.textContent = text
+}
+
+function esc(s) {
+  return String(s ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+async function loadSources() {
+  const r = await fetch('/api/sources')
+  const j = await r.json()
+  if (j.code !== 200) throw new Error(j.message)
+  const source = document.getElementById('source')
+  source.innerHTML = j.data.map(s => `<option value="${s.id}">${s.id}. ${s.name}</option>`).join('')
+}
+
+async function doSearch() {
+  const kw = document.getElementById('kw').value.trim()
+  const sid = document.getElementById('source').value
+  if (!kw) return
+  setMsg('searchMsg', '搜索中...')
+  const u = new URL('/api/search', window.location.origin)
+  u.searchParams.set('kw', kw)
+  u.searchParams.set('sourceId', sid)
+  const r = await fetch(u)
+  const j = await r.json()
+  if (j.code !== 200) throw new Error(j.message)
+  state.items = j.data || []
+  const tb = document.getElementById('resultBody')
+  if (!state.items.length) {
+    tb.innerHTML = `<tr><td class="empty" colspan="5">未找到匹配小说，请尝试更完整书名或切换书源</td></tr>`
+  } else {
+    tb.innerHTML = state.items.map((x, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>
+          <div class="book-title">${esc(x.bookName)}</div>
+          <div class="cell-sub">作者：${esc(x.author || '未知')}</div>
+          <div class="cell-sub ellipsis">链接：${esc(x.url || '')}</div>
+        </td>
+        <td>
+          <div class="ellipsis">${esc(x.latestChapter || '暂无')}</div>
+          <div class="cell-sub">${esc(x.lastUpdateTime || '更新时间未知')}</div>
+        </td>
+        <td>
+          <div><span class="badge">${esc(x.sourceName || ('书源 ' + x.sourceId))}</span></div>
+          <div class="cell-sub">状态：${esc(x.status || '未知')}</div>
+          <div class="cell-sub">类别：${esc(x.category || '-')}</div>
+        </td>
+        <td><button onclick="doDownload(${i})">下载</button></td>
+      </tr>
+    `).join('')
+  }
+  document.getElementById('resultTable').style.display = ''
+  setMsg('searchMsg', `共 ${state.items.length} 条结果`, 'ok')
+}
+
+async function doDownload(i) {
+  const item = state.items[i]
+  if (!item) return
+  const searchBtn = document.getElementById('searchBtn')
+  searchBtn.disabled = true
+  const payload = {
+    url: item.url,
+    sourceId: Number(document.getElementById('source').value),
+    format: document.getElementById('fmt').value,
+    concurrency: Number(document.getElementById('concurrency').value || 12),
+    start: Number(document.getElementById('start').value || 1),
+    end: Number(document.getElementById('end').value || 0)
+  }
+  setMsg('downloadMsg', `开始下载: ${item.bookName} ...`)
+  try {
+    const r = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    const j = await r.json()
+    if (j.code !== 200) throw new Error(j.message)
+    const jobId = j.data && j.data.id
+    if (!jobId) throw new Error('任务创建失败')
+    await waitJobDone(jobId)
+  } catch (e) {
+    setMsg('downloadMsg', e.message || '下载失败', 'err')
+  } finally {
+    searchBtn.disabled = false
+  }
+}
+
+async function waitJobDone(jobId) {
+  for (;;) {
+    const r = await fetch('/api/job?id=' + encodeURIComponent(jobId))
+    const j = await r.json()
+    if (j.code !== 200) throw new Error(j.message || '任务查询失败')
+    const job = j.data
+    if (job.state === 'pending') {
+      setMsg('downloadMsg', `任务排队中... (${job.id})`)
+    } else if (job.state === 'running') {
+      setMsg('downloadMsg', `下载中... (${job.id})`)
+    } else if (job.state === 'success') {
+      setMsg('downloadMsg', '下载完成: ' + (job.path || ''), 'ok')
+      await loadFiles()
+      return
+    } else if (job.state === 'error') {
+      throw new Error(job.message || '下载失败')
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+}
+
+async function loadFiles() {
+  const r = await fetch('/api/files')
+  const j = await r.json()
+  if (j.code !== 200) throw new Error(j.message)
+  const tb = document.getElementById('fileBody')
+  const files = j.data || []
+  if (!files.length) {
+    tb.innerHTML = `<tr><td class="empty" colspan="5">暂无下载文件，先去上方搜索并下载</td></tr>`
+    return
+  }
+  tb.innerHTML = files.map(f => `
+    <tr>
+      <td>${esc(f.name)}</td>
+      <td>${f.isDir ? '<span class="badge">目录</span>' : '<span class="badge">文件</span>'}</td>
+      <td>${f.isDir ? '-' : fmtSize(f.size)}</td>
+      <td>${new Date(f.modTime).toLocaleString()}</td>
+      <td>${f.isDir ? '<span class="muted">不可直下</span>' : `<a href="/api/file?name=${encodeURIComponent(f.name)}">下载</a>`}</td>
+    </tr>
+  `).join('')
+}
+
+document.getElementById('searchBtn').onclick = () => doSearch().catch(e => setMsg('searchMsg', e.message, 'err'))
+document.getElementById('refreshBtn').onclick = () => loadFiles().catch(e => setMsg('downloadMsg', e.message, 'err'))
+document.getElementById('kw').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doSearch().catch(err => setMsg('searchMsg', err.message, 'err'))
+})
+
+Promise.all([loadSources(), loadFiles()]).catch(e => {
+  setMsg('searchMsg', e.message, 'err')
+  setMsg('downloadMsg', e.message, 'err')
+})
+</script>
+</body>
+</html>

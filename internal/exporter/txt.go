@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/so-novel/sonovel-go/internal/model"
-	"github.com/so-novel/sonovel-go/internal/util"
+	"github.com/opso-code/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/util"
 )
 
 type TXTExporter struct{}

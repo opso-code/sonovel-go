@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/so-novel/sonovel-go/internal/util"
+	"github.com/opso-code/sonovel-go/internal/util"
 )
 
 func selectField(sel *goquery.Selection, query string, base *url.URL) string {

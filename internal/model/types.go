@@ -131,4 +131,5 @@ type Config struct {
 	SearchLimit   int
 	ChapterStart  int
 	ChapterEnd    int
+	OnProgress    func(done, total int)
 }

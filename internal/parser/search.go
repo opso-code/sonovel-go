@@ -2,13 +2,12 @@ package parser
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/so-novel/sonovel-go/internal/httpx"
-	"github.com/so-novel/sonovel-go/internal/model"
-	"github.com/so-novel/sonovel-go/internal/util"
+	"github.com/opso-code/sonovel-go/internal/httpx"
+	"github.com/opso-code/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/util"
 )
 
 type SearchParser struct {
@@ -22,7 +21,7 @@ func (p *SearchParser) Parse(keyword string) ([]model.SearchResult, error) {
 		return nil, fmt.Errorf("source %d does not support search", p.Rule.ID)
 	}
 	r := p.Rule.Search
-	searchURL := fmt.Sprintf(r.URL, url.QueryEscape(keyword))
+	searchURL := formatSearchURL(r.URL, keyword)
 
 	var body []byte
 	var err error
@@ -40,6 +39,32 @@ func (p *SearchParser) Parse(keyword string) ([]model.SearchResult, error) {
 		return nil, err
 	}
 	return p.extractFromDoc(doc), nil
+}
+
+func formatSearchURL(tpl, keyword string) string {
+	if !strings.Contains(tpl, "%s") {
+		return tpl
+	}
+	var b strings.Builder
+	rest := tpl
+	first := true
+	for {
+		idx := strings.Index(rest, "%s")
+		if idx < 0 {
+			b.WriteString(rest)
+			break
+		}
+		b.WriteString(rest[:idx])
+		if first {
+			b.WriteString(keyword)
+			first = false
+		} else {
+			// 规则里若存在额外占位符（如加密参数），默认留空，避免 URL 格式被破坏。
+			b.WriteString("")
+		}
+		rest = rest[idx+2:]
+	}
+	return b.String()
 }
 
 func (p *SearchParser) extractFromDoc(doc *goquery.Document) []model.SearchResult {

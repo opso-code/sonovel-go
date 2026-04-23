@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/so-novel/sonovel-go/internal/model"
-	"github.com/so-novel/sonovel-go/internal/parser"
+	"github.com/opso-code/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/parser"
 )
 
 type Crawler struct {
@@ -47,8 +48,14 @@ func (c *Crawler) fetchChapters(toc []model.ChapterItem) ([]model.ChapterItem, e
 	jobs := make(chan job)
 	results := make([]model.ChapterItem, len(toc))
 	var wg sync.WaitGroup
+	var cbMu sync.Mutex
+	var completed int32
 	var firstErr error
 	var errMu sync.Mutex
+	total := len(toc)
+	if c.Cfg.OnProgress != nil {
+		c.Cfg.OnProgress(0, total)
+	}
 
 	worker := func() {
 		defer wg.Done()
@@ -61,9 +68,16 @@ func (c *Crawler) fetchChapters(toc []model.ChapterItem) ([]model.ChapterItem, e
 					firstErr = err
 				}
 				errMu.Unlock()
-				continue
+			} else {
+				results[j.idx] = item
 			}
-			results[j.idx] = item
+
+			if c.Cfg.OnProgress != nil {
+				cur := int(atomic.AddInt32(&completed, 1))
+				cbMu.Lock()
+				c.Cfg.OnProgress(cur, total)
+				cbMu.Unlock()
+			}
 		}
 	}
 

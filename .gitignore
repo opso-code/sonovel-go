@@ -1,3 +1,6 @@
 .gocache/
 .gomodcache/
 downloads/
+sonovel
+dist/
+.DS_Store

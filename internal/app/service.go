@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/so-novel/sonovel-go/internal/crawler"
-	"github.com/so-novel/sonovel-go/internal/exporter"
-	"github.com/so-novel/sonovel-go/internal/httpx"
-	"github.com/so-novel/sonovel-go/internal/model"
-	"github.com/so-novel/sonovel-go/internal/parser"
-	"github.com/so-novel/sonovel-go/internal/rule"
+	"github.com/opso-code/sonovel-go/internal/crawler"
+	"github.com/opso-code/sonovel-go/internal/exporter"
+	"github.com/opso-code/sonovel-go/internal/httpx"
+	"github.com/opso-code/sonovel-go/internal/model"
+	"github.com/opso-code/sonovel-go/internal/parser"
+	"github.com/opso-code/sonovel-go/internal/rule"
 )
 
 type Service struct {
