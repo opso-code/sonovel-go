@@ -23,8 +23,6 @@ Go 语言实现的 So Novel 核心功能版本（规则驱动抓取）。
 
 ```bash
 cd sonovel-go
-make copy-rules
-make init
 make test
 ```
 
@@ -74,13 +72,10 @@ go run ./cmd/sonovel web --config ./config.toml --port 7765
 
 ```bash
 make help
-make copy-rules
-make init
 make run-tui
 make run-web
 make build
 make build-all
-make package-all
 ```
 
 `build-all` 默认生成：
@@ -90,16 +85,12 @@ make package-all
 
 产物目录：`./dist`
 
-`package-all` 额外生成：
-- `dist/packages/sonovel-go_<version>_linux_amd64.tar.gz`
-- `dist/packages/sonovel-go_<version>_darwin_amd64.tar.gz`
-- `dist/packages/sonovel-go_<version>_windows_amd64.zip`
-
 压缩包内包含：
 - 可执行文件
 - `config.toml`
 - `rules/`
-- `README.md`
+
+用户下载对应平台压缩包后，解压即可直接运行，无需执行 `make init`。
 
 ## 参数要点
 
@@ -148,3 +139,7 @@ open_browser = true
 - `internal/web`: Web 服务与静态页面。
 - `internal/httpx`: HTTP 客户端与 POST 模板解析。
 - `rules`: 书源规则目录。
+
+## License
+
+本项目基于 `so-novel` 进行翻译与改造，遵循其 AGPL 许可要求。

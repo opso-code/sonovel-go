@@ -1,19 +1,17 @@
 APP := sonovel-go
 CMD := ./cmd/sonovel
 DIST := dist
+BIN := sonovel-go
 VERSION ?= 0.0.1
 
 GO ?= go
 GOFLAGS ?=
 LDFLAGS ?= -s -w
 GOPROXY ?= https://proxy.golang.org,direct
-GOCACHE ?= /tmp/$(APP)-gocache
+GOCACHE ?= $(CURDIR)/.gocache
 GOMODCACHE ?= $(CURDIR)/.gomodcache
 
-RULES_SRC ?= ../so-novel/bundle/rules
-RULES_DST ?= ./rules
-
-.PHONY: help tidy test run run-tui run-web init build copy-rules build-all package-all clean
+.PHONY: help tidy test run run-tui run-web init build build-all package-all clean
 
 help:
 	@echo "Targets:"
@@ -22,10 +20,8 @@ help:
 	@echo "  make run-tui        # 本地运行 TUI"
 	@echo "  make run-web        # 本地运行 Web UI (:7765)"
 	@echo "  make test           # 运行 go test"
-	@echo "  make build          # 构建当前平台二进制到 ./dist"
-	@echo "  make build-all      # 构建 x64 多平台二进制到 ./dist (linux/windows/darwin)"
-	@echo "  make package-all    # 生成可分发压缩包(二进制+config+rules+README)"
-	@echo "  make copy-rules     # 复制规则目录到 ./rules"
+	@echo "  make build          # 构建当前平台二进制到项目根目录(sonovel-go/sonovel-go.exe)"
+	@echo "  make build-all      # 构建并打包 x64 多平台压缩包(仅保留压缩包)"
 	@echo "  make clean          # 清理 dist"
 
 tidy:
@@ -47,21 +43,9 @@ run-web:
 	$(GO) run $(CMD) web --config ./config.toml --port 7765 --rules ./rules/main.json --out ./downloads
 
 build:
-	@mkdir -p $(DIST)
-	CGO_ENABLED=0 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_$$(go env GOOS)_$$(go env GOARCH) $(CMD)
-
-copy-rules:
-	@mkdir -p $(RULES_DST)
-	rm -rf $(RULES_DST)
-	cp -R $(RULES_SRC) $(RULES_DST)
+	CGO_ENABLED=0 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o ./$(BIN)$$( [ "$$(go env GOOS)" = "windows" ] && echo ".exe" ) $(CMD)
 
 build-all:
-	@mkdir -p $(DIST)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(CMD)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(CMD)
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(CMD)
-
-package-all: build-all
 	@mkdir -p $(DIST)/packages
 	rm -rf $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle
 	rm -rf $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle
@@ -69,15 +53,15 @@ package-all: build-all
 	mkdir -p $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/rules
 	mkdir -p $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/rules
 	mkdir -p $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/rules
-	cp $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/$(APP)
-	cp $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/$(APP)
-	cp $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/$(APP).exe
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(CMD)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(CMD)
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(CMD)
+	cp $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/$(BIN)
+	cp $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/$(BIN)
+	cp $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/$(BIN).exe
 	cp config.toml $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/
 	cp config.toml $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/
 	cp config.toml $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/
-	cp README.md $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/
-	cp README.md $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/
-	cp README.md $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/
 	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/rules/
 	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/rules/
 	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/rules/
