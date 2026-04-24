@@ -1,6 +1,8 @@
 .gocache/
 .gomodcache/
 downloads/
-sonovel
+sonovel-go
 dist/
 .DS_Store
+.vscode/
+.idea/
