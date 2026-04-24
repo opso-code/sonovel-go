@@ -4,8 +4,9 @@ Go 语言实现的 So Novel 核心功能版本（规则驱动抓取）。
 
 ## 功能概览
 
-- 规则加载：读取 `bundle/rules/*.json` 或指定规则文件。
+- 规则加载：读取 `./rules/*.json` 或指定规则文件。
 - 搜索：按书源规则搜索书名/作者。
+- 搜索后直下：`search` 命令搜索完成后可直接输入序号下载。
 - 抓取：解析书籍详情、目录、章节正文。
 - 下载：支持并发抓章节、失败重试、章节范围下载。
 - 导出：`txt`（默认）、`epub`、`html`。
@@ -22,15 +23,17 @@ Go 语言实现的 So Novel 核心功能版本（规则驱动抓取）。
 
 ```bash
 cd sonovel-go
-GOPROXY=https://proxy.golang.org,direct go mod tidy
+make copy-rules
+make init
+make test
 ```
 
 ## 命令说明
 
-### 1) 搜索（CLI）
+### 1) 搜索（CLI，支持选行直接下载）
 
 ```bash
-go run ./cmd/sonovel search --kw "斗罗大陆" --source-id 1 --rules ../so-novel/bundle/rules/main.json
+go run ./cmd/sonovel search --kw "斗罗大陆" --config ./config.toml
 ```
 
 ### 2) 下载（CLI）
@@ -39,8 +42,7 @@ go run ./cmd/sonovel search --kw "斗罗大陆" --source-id 1 --rules ../so-nove
 go run ./cmd/sonovel download \
   --url "https://www.shuhaige.net/70475/" \
   --format txt \
-  --out ./downloads \
-  --rules ../so-novel/bundle/rules/main.json \
+  --config ./config.toml \
   --concurrency 12
 ```
 
@@ -50,30 +52,90 @@ go run ./cmd/sonovel download \
 go run ./cmd/sonovel download \
   --url "https://www.shuhaige.net/70475/" \
   --start 1 --end 100 \
-  --format txt
+  --format txt \
+  --config ./config.toml
 ```
 
 ### 4) 终端交互模式（TUI）
 
 ```bash
-go run ./cmd/sonovel tui --rules ../so-novel/bundle/rules/main.json --out ./downloads
+go run ./cmd/sonovel tui --config ./config.toml
 ```
 
 ### 5) Web UI
 
 ```bash
-go run ./cmd/sonovel web --port 7765 --rules ../so-novel/bundle/rules/main.json --out ./downloads
+go run ./cmd/sonovel web --config ./config.toml --port 7765
 ```
 
 浏览器打开：`http://localhost:7765`
 
+## Makefile
+
+```bash
+make help
+make copy-rules
+make init
+make run-tui
+make run-web
+make build
+make build-all
+make package-all
+```
+
+`build-all` 默认生成：
+- linux: amd64
+- darwin: amd64
+- windows: amd64
+
+产物目录：`./dist`
+
+`package-all` 额外生成：
+- `dist/packages/sonovel-go_<version>_linux_amd64.tar.gz`
+- `dist/packages/sonovel-go_<version>_darwin_amd64.tar.gz`
+- `dist/packages/sonovel-go_<version>_windows_amd64.zip`
+
+压缩包内包含：
+- 可执行文件
+- `config.toml`
+- `rules/`
+- `README.md`
+
 ## 参数要点
 
-- `--rules`：规则文件路径（默认 `../bundle/rules/main.json`，建议按你的目录改成 `../so-novel/bundle/rules/main.json`）。
+- `--config`：配置文件路径（默认 `./config.toml`）。
+- `--rules`：规则文件路径（默认 `./rules/main.json`）。
 - `--format`：`txt|epub|html`，默认 `txt`。
 - `--out`：下载输出目录，默认 `./downloads`。
 - `--concurrency`：并发数，默认 `12`。
 - `--start --end`：章节范围（`end=0` 表示到最后一章）。
+
+## 配置文件
+
+默认读取 `./config.toml`。示例：
+
+```toml
+rules_file = "./rules/main.json"
+output_dir = "./downloads"
+format = "txt"
+source_id = 1
+search_limit = 20
+concurrency = 12
+chapter_start = 1
+chapter_end = 0
+min_interval_ms = 200
+max_interval_ms = 450
+enable_retry = true
+max_retries = 3
+retry_min_ms = 1000
+retry_max_ms = 2000
+
+[web]
+port = 7765
+open_browser = true
+```
+
+优先级：命令行参数 > `config.toml` > 程序默认值。
 
 ## 目录结构
 
@@ -85,3 +147,4 @@ go run ./cmd/sonovel web --port 7765 --rules ../so-novel/bundle/rules/main.json 
 - `internal/tui`: 终端交互界面。
 - `internal/web`: Web 服务与静态页面。
 - `internal/httpx`: HTTP 客户端与 POST 模板解析。
+- `rules`: 书源规则目录。

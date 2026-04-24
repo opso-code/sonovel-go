@@ -8,7 +8,9 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -83,7 +85,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/download", s.handleDownload)
 	s.mux.HandleFunc("/api/job", s.handleJob)
 	s.mux.HandleFunc("/api/files", s.handleFiles)
-	s.mux.HandleFunc("/api/file", s.handleFile)
+	s.mux.HandleFunc("/api/open-output", s.handleOpenOutput)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -211,12 +213,16 @@ func (s *Server) handleFiles(w http.ResponseWriter, _ *http.Request) {
 	}
 	items := make([]localFile, 0, len(entries))
 	for _, e := range entries {
+		name := e.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
 		info, err := e.Info()
 		if err != nil {
 			continue
 		}
 		items = append(items, localFile{
-			Name:    e.Name(),
+			Name:    name,
 			IsDir:   e.IsDir(),
 			Size:    info.Size(),
 			ModTime: info.ModTime().UnixMilli(),
@@ -226,31 +232,42 @@ func (s *Server) handleFiles(w http.ResponseWriter, _ *http.Request) {
 	writeOK(w, items)
 }
 
-func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
-	name := filepath.Base(strings.TrimSpace(r.URL.Query().Get("name")))
-	if name == "." || name == "" {
-		writeErr(w, http.StatusBadRequest, errors.New("invalid file name"))
+func (s *Server) handleOpenOutput(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
 		return
 	}
-	baseDir := filepath.Clean(s.BaseCfg.OutputDir)
-	full := filepath.Join(baseDir, name)
-	realBase, _ := filepath.Abs(baseDir)
-	realFull, _ := filepath.Abs(full)
-	if !strings.HasPrefix(realFull, realBase+string(os.PathSeparator)) && realFull != realBase {
-		writeErr(w, http.StatusBadRequest, errors.New("invalid path"))
+	dir := filepath.Clean(s.BaseCfg.OutputDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	info, err := os.Stat(realFull)
+	abs, err := filepath.Abs(dir)
 	if err != nil {
-		writeErr(w, http.StatusNotFound, err)
+		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	if info.IsDir() {
-		writeErr(w, http.StatusBadRequest, errors.New("directory download is not supported"))
+	cmd, err := openDirCommand(abs)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
 		return
 	}
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", name))
-	http.ServeFile(w, r, realFull)
+	if err := cmd.Start(); err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeOK(w, map[string]string{"path": abs})
+}
+
+func openDirCommand(path string) (*exec.Cmd, error) {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", path), nil
+	case "windows":
+		return exec.Command("cmd", "/c", "start", "", path), nil
+	default:
+		return exec.Command("xdg-open", path), nil
+	}
 }
 
 func writeOK(w http.ResponseWriter, data interface{}) {

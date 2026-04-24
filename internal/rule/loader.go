@@ -14,7 +14,7 @@ import (
 func LoadRules(path string) ([]model.Rule, error) {
 	p := strings.TrimSpace(path)
 	if p == "" {
-		p = "bundle/rules/main.json"
+		p = "./rules/main.json"
 	}
 	info, err := os.Stat(p)
 	if err != nil {

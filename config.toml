@@ -1,0 +1,23 @@
+# sonovel-go 配置文件（TOML）
+# 命令行参数优先级更高，会覆盖这里的值。
+
+rules_file = "./rules/main.json"
+output_dir = "./downloads"
+format = "txt"            # txt | epub | html
+source_id = 1
+search_limit = 20
+
+concurrency = 12
+chapter_start = 1
+chapter_end = 0           # 0 表示到最后一章
+
+min_interval_ms = 200
+max_interval_ms = 450
+enable_retry = true
+max_retries = 3
+retry_min_ms = 1000
+retry_max_ms = 2000
+
+[web]
+port = 7765
+open_browser = true

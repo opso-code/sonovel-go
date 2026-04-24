@@ -12,6 +12,7 @@
     h1 { margin: 0 0 14px; font-size: 28px; }
     .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
+    .field { display:flex; align-items:center; gap:6px; font-size:13px; color:#374151; }
     input, select, button { padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:14px; }
     input, select { background:#fff; }
     button { background:var(--pri); color:#fff; border-color:var(--pri); cursor:pointer; }
@@ -54,10 +55,17 @@
         <option value="epub">EPUB</option>
         <option value="html">HTML</option>
       </select>
-      <input id="concurrency" type="number" min="1" value="12" style="width:110px" />
-      <input id="start" type="number" min="1" value="1" style="width:110px" />
-      <input id="end" type="number" min="0" value="0" style="width:110px" />
+      <label class="field" for="concurrency">并发
+        <input id="concurrency" type="number" min="1" value="12" style="width:110px" title="同时下载章节数量，建议 8-20" />
+      </label>
+      <label class="field" for="start">起始章节
+        <input id="start" type="number" min="1" value="1" style="width:110px" title="从第几章开始下载" />
+      </label>
+      <label class="field" for="end">结束章节(0=全部)
+        <input id="end" type="number" min="0" value="0" style="width:110px" title="下载到第几章，0 表示直到最新章" />
+      </label>
       <button id="refreshBtn" class="secondary">刷新文件列表</button>
+      <button id="openOutBtn" class="secondary">打开下载目录</button>
     </div>
     <div id="downloadMsg" class="muted" style="margin-top:8px"></div>
   </div>
@@ -65,7 +73,7 @@
   <div class="panel">
     <h3 style="margin:0 0 8px">已下载文件</h3>
     <table>
-      <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>时间</th><th>说明</th></tr></thead>
       <tbody id="fileBody"></tbody>
     </table>
   </div>
@@ -92,6 +100,12 @@ function esc(s) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
+}
+
+function friendlyJobId(id) {
+  const m = String(id || '').match(/^job-(\d+)$/)
+  if (!m) return ''
+  return `任务#${m[1]}`
 }
 
 async function loadSources() {
@@ -182,9 +196,11 @@ async function waitJobDone(jobId) {
     if (j.code !== 200) throw new Error(j.message || '任务查询失败')
     const job = j.data
     if (job.state === 'pending') {
-      setMsg('downloadMsg', `任务排队中... (${job.id})`)
+      const tip = friendlyJobId(job.id)
+      setMsg('downloadMsg', tip ? `任务排队中...（${tip}）` : '任务排队中...')
     } else if (job.state === 'running') {
-      setMsg('downloadMsg', `下载中... (${job.id})`)
+      const tip = friendlyJobId(job.id)
+      setMsg('downloadMsg', tip ? `下载中...（${tip}）` : '下载中...')
     } else if (job.state === 'success') {
       setMsg('downloadMsg', '下载完成: ' + (job.path || ''), 'ok')
       await loadFiles()
@@ -212,13 +228,21 @@ async function loadFiles() {
       <td>${f.isDir ? '<span class="badge">目录</span>' : '<span class="badge">文件</span>'}</td>
       <td>${f.isDir ? '-' : fmtSize(f.size)}</td>
       <td>${new Date(f.modTime).toLocaleString()}</td>
-      <td>${f.isDir ? '<span class="muted">不可直下</span>' : `<a href="/api/file?name=${encodeURIComponent(f.name)}">下载</a>`}</td>
+      <td><span class="muted">请使用下载目录</span></td>
     </tr>
   `).join('')
 }
 
+async function openOutputDir() {
+  const r = await fetch('/api/open-output', { method: 'POST' })
+  const j = await r.json()
+  if (j.code !== 200) throw new Error(j.message || '打开目录失败')
+  setMsg('downloadMsg', '已尝试打开下载目录: ' + ((j.data && j.data.path) || ''), 'ok')
+}
+
 document.getElementById('searchBtn').onclick = () => doSearch().catch(e => setMsg('searchMsg', e.message, 'err'))
 document.getElementById('refreshBtn').onclick = () => loadFiles().catch(e => setMsg('downloadMsg', e.message, 'err'))
+document.getElementById('openOutBtn').onclick = () => openOutputDir().catch(e => setMsg('downloadMsg', e.message, 'err'))
 document.getElementById('kw').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doSearch().catch(err => setMsg('searchMsg', err.message, 'err'))
 })
