@@ -1,8 +1,10 @@
 package crawler
 
 import (
+	"errors"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +19,8 @@ type Crawler struct {
 	TocParser     *parser.TocParser
 	ChapterParser *parser.ChapterParser
 }
+
+var ErrCanceled = errors.New("download canceled")
 
 func (c *Crawler) Crawl(bookURL string) (model.BookMeta, []model.ChapterItem, error) {
 	meta, err := c.BookParser.Parse(bookURL)
@@ -45,7 +49,7 @@ func (c *Crawler) fetchChapters(toc []model.ChapterItem) ([]model.ChapterItem, e
 		workers = min(20, len(toc))
 	}
 	type job struct{ idx int }
-	jobs := make(chan job)
+	jobs := make(chan job, len(toc))
 	results := make([]model.ChapterItem, len(toc))
 	var wg sync.WaitGroup
 	var cbMu sync.Mutex
@@ -60,17 +64,41 @@ func (c *Crawler) fetchChapters(toc []model.ChapterItem) ([]model.ChapterItem, e
 	worker := func() {
 		defer wg.Done()
 		for j := range jobs {
-			ch := toc[j.idx]
-			item, err := c.fetchWithRetry(ch)
-			if err != nil {
+			if c.isCanceled() {
 				errMu.Lock()
 				if firstErr == nil {
-					firstErr = err
+					firstErr = ErrCanceled
 				}
 				errMu.Unlock()
-			} else {
-				results[j.idx] = item
+				continue
 			}
+			ch := toc[j.idx]
+			if c.Cfg.OnChapter != nil {
+				done := int(atomic.LoadInt32(&completed))
+				c.Cfg.OnChapter(done, total, ch.Title)
+			}
+			item, err := c.fetchWithRetry(ch)
+			if err != nil {
+				if errors.Is(err, ErrCanceled) {
+					errMu.Lock()
+					if firstErr == nil {
+						firstErr = err
+					}
+					errMu.Unlock()
+				} else {
+					item = failedChapterPlaceholder(ch, err)
+				}
+			}
+			if item.Title == "" {
+				item.Title = ch.Title
+			}
+			if item.URL == "" {
+				item.URL = ch.URL
+			}
+			if strings.TrimSpace(item.Content) == "" {
+				item = failedChapterPlaceholder(ch, fmt.Errorf("empty content"))
+			}
+			results[j.idx] = item
 
 			if c.Cfg.OnProgress != nil {
 				cur := int(atomic.AddInt32(&completed, 1))
@@ -86,6 +114,9 @@ func (c *Crawler) fetchChapters(toc []model.ChapterItem) ([]model.ChapterItem, e
 		go worker()
 	}
 	for i := range toc {
+		if c.isCanceled() {
+			break
+		}
 		jobs <- job{idx: i}
 	}
 	close(jobs)
@@ -108,14 +139,21 @@ func (c *Crawler) fetchWithRetry(ch model.ChapterItem) (model.ChapterItem, error
 	}
 	var lastErr error
 	for i := 1; i <= maxTry; i++ {
-		sleepRandom(c.Cfg.MinIntervalMS, c.Cfg.MaxIntervalMS)
+		if c.isCanceled() {
+			return ch, ErrCanceled
+		}
+		if err := sleepRandom(c.Cfg.MinIntervalMS, c.Cfg.MaxIntervalMS, c.Cfg.ShouldCancel); err != nil {
+			return ch, err
+		}
 		item, err := c.ChapterParser.Parse(ch)
 		if err == nil {
 			return item, nil
 		}
 		lastErr = err
 		if i < maxTry {
-			sleepRandom(c.Cfg.RetryMinMS*i, c.Cfg.RetryMaxMS*i)
+			if err := sleepRandom(c.Cfg.RetryMinMS*i, c.Cfg.RetryMaxMS*i, c.Cfg.ShouldCancel); err != nil {
+				return ch, err
+			}
 		}
 	}
 	return ch, fmt.Errorf("fetch chapter failed: %s (%w)", ch.Title, lastErr)
@@ -139,7 +177,7 @@ func applyRange(in []model.ChapterItem, start, end int) []model.ChapterItem {
 	return out
 }
 
-func sleepRandom(minMS, maxMS int) {
+func sleepRandom(minMS, maxMS int, shouldCancel func() bool) error {
 	if minMS <= 0 {
 		minMS = 100
 	}
@@ -147,7 +185,20 @@ func sleepRandom(minMS, maxMS int) {
 		maxMS = minMS + 1
 	}
 	d := rand.IntN(maxMS-minMS) + minMS
-	time.Sleep(time.Duration(d) * time.Millisecond)
+	deadline := time.Now().Add(time.Duration(d) * time.Millisecond)
+	for {
+		if shouldCancel != nil && shouldCancel() {
+			return ErrCanceled
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return nil
+		}
+		if remaining > 150*time.Millisecond {
+			remaining = 150 * time.Millisecond
+		}
+		time.Sleep(remaining)
+	}
 }
 
 func min(a, b int) int {
@@ -155,4 +206,29 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func (c *Crawler) isCanceled() bool {
+	return c.Cfg.ShouldCancel != nil && c.Cfg.ShouldCancel()
+}
+
+func failedChapterPlaceholder(ch model.ChapterItem, err error) model.ChapterItem {
+	msg := "unknown error"
+	if err != nil {
+		msg = err.Error()
+	}
+	return model.ChapterItem{
+		Order: ch.Order,
+		Title: ch.Title,
+		URL:   ch.URL,
+		Content: fmt.Sprintf(
+			"<p>[章节下载失败]</p><p>章节：%s</p><p>原因：%s</p><p>链接：%s</p>",
+			escapeHTML(ch.Title), escapeHTML(msg), escapeHTML(ch.URL),
+		),
+	}
+}
+
+func escapeHTML(s string) string {
+	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+	return r.Replace(s)
 }

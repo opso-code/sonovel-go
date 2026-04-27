@@ -24,6 +24,9 @@ func ApplyInlineJS(jsCode, input string) string {
 	if strings.TrimSpace(jsCode) == "" {
 		return input
 	}
+	if out, err := RunInlineJS(jsCode, input); err == nil {
+		return strings.TrimSpace(out)
+	}
 	res := input
 
 	if strings.Contains(jsCode, `r='`) && strings.Contains(jsCode, `'+r`) {

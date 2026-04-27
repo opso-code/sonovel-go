@@ -5,252 +5,533 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sonovel-go</title>
   <style>
-    :root { --bg:#f7f8fb; --panel:#fff; --text:#1f2937; --line:#e5e7eb; --pri:#2563eb; }
+    :root {
+      --bg0: #f6fbff;
+      --bg1: #ecf7ff;
+      --panel: #ffffff;
+      --line: #d8e7f2;
+      --ink: #142433;
+      --muted: #587086;
+      --accent: #0f7b99;
+      --warn: #f59f00;
+      --ok: #198754;
+      --err: #d94848;
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--text); background:var(--bg); }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-    h1 { margin: 0 0 14px; font-size: 28px; }
-    .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; }
-    .field { display:flex; align-items:center; gap:6px; font-size:13px; color:#374151; }
-    input, select, button { padding:10px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:14px; }
-    input, select { background:#fff; }
-    button { background:var(--pri); color:#fff; border-color:var(--pri); cursor:pointer; }
-    button.secondary { background:#fff; color:#111827; border-color:#d1d5db; }
-    button:disabled { opacity:.6; cursor:not-allowed; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
-    th,td { border-bottom:1px solid var(--line); padding:10px 8px; text-align:left; vertical-align:top; }
-    tbody tr:hover { background:#f8fafc; }
-    .muted { color:#6b7280; font-size:12px; }
-    .ok { color:#059669; }
-    .err { color:#dc2626; }
-    .book-title { font-weight:600; margin-bottom:2px; }
-    .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid #d1d5db; background:#f9fafb; color:#374151; }
-    .cell-sub { font-size:12px; color:#6b7280; margin-top:4px; }
-    .ellipsis { max-width:360px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .empty { text-align:center; color:#6b7280; padding:18px 8px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 500px at -10% -20%, #d9efff 0%, transparent 65%),
+        radial-gradient(1000px 500px at 110% -20%, #d8f3ef 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .app { max-width: 1140px; margin: 0 auto; padding: 20px 14px 28px; }
+    .hero { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: 12px; }
+    .title { margin:0; font-size:34px; font-weight:800; letter-spacing:.6px; }
+    .sub { margin-top:6px; color: var(--muted); font-size:13px; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(20,36,51,.07);
+      margin-bottom: 14px;
+    }
+    .hd {
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, #fdfefe 0%, #f5fbff 100%);
+      padding: 12px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .hd h3 { margin:0; font-size:16px; }
+    .body { padding: 13px 14px 14px; }
+
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input, select {
+      border: 1px solid #c7dceb;
+      border-radius: 11px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #92c9df; box-shadow: 0 0 0 3px rgba(24,156,177,.12); }
+
+    .field {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .field select,
+    .field input {
+      padding: 8px 10px;
+      border-radius: 11px;
+      border: 1px solid #c7dceb;
+      background: #fff;
+      color: var(--ink);
+      font-size: 14px;
+      min-height: 36px;
+    }
+    .field input { width: 74px; }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid #b8d4e4;
+      background: #fff;
+      cursor: pointer;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .18s ease;
+    }
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-btn.primary {
+      background: linear-gradient(180deg, #1da3bf, #0f7b99);
+      color: #fff;
+      border-color: #0f7b99;
+    }
+    .icon-btn.warn {
+      background: linear-gradient(180deg, #ffcc5c, #f59f00);
+      color: #1f2937;
+      border-color: #f59f00;
+    }
+    .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(15,123,153,.18); }
+    .icon-btn:disabled { opacity: .55; cursor:not-allowed; }
+
+    .pill {
+      display:inline-block;
+      padding: 3px 10px;
+      border: 1px solid #b8d4e4;
+      border-radius: 999px;
+      background: #f5fbff;
+      color: #3e5f74;
+      font-size: 12px;
+    }
+    .pill.ok { border-color:#9dd8be; color:#146c43; background:#ecfbf3; }
+    .pill.err { border-color:#f0b8b8; color:#b42318; background:#fff5f5; }
+    .pill.warn { border-color:#f3d08f; color:#9a6700; background:#fff8e9; }
+
+    .msg { font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 8px; }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: var(--err); }
+
+    table { width:100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { color: #5b7387; font-size: 12px; }
+    tbody tr:hover { background: #f4fbff; }
+    .book { font-weight: 700; margin-bottom: 3px; }
+    .small { color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .ellipsis { max-width: 460px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .empty { text-align:center; color:var(--muted); padding: 16px 8px; }
+
+    .pager {
+      margin-top: 10px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .jobs { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+    .job-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      align-items: center;
+    }
+    .job-row:last-child { border-bottom: none; }
+    .job-title { font-size: 14px; font-weight: 600; display:flex; align-items:center; gap:8px; }
+    .job-sub { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #9fb8c9;
+      flex: 0 0 auto;
+    }
+    .dot.running { background:#0f7b99; }
+    .dot.success { background:#198754; }
+    .dot.error { background:#d94848; }
+    .dot.canceled { background:#f59f00; }
+
+    .bar {
+      margin-top: 6px;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #cae0ee;
+      background: #edf7fd;
+      width: 100%;
+      max-width: 520px;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #1cc4c9, #0f7b99);
+      transition: width .35s ease;
+    }
+    .job-actions { display:flex; gap:6px; align-items:center; }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>sonovel-go Web UI</h1>
-
-  <div class="panel">
-    <div class="row">
-      <select id="source"></select>
-      <input id="kw" placeholder="输入书名或作者" style="min-width:260px;flex:1" />
-      <button id="searchBtn">搜索</button>
+<div class="app">
+  <div class="hero">
+    <div>
+      <h1 class="title">sonovel-go</h1>
+      <div class="sub">搜索并下载，任务列表统一展示进度与历史</div>
     </div>
-    <div id="searchMsg" class="muted" style="margin-top:8px"></div>
-    <table id="resultTable" style="display:none">
-      <thead><tr><th>#</th><th>作品</th><th>最新章节</th><th>来源/状态</th><th>操作</th></tr></thead>
-      <tbody id="resultBody"></tbody>
-    </table>
+    <button id="openOutBtn" class="icon-btn" title="打开下载目录">
+      <svg viewBox="0 0 24 24"><path d="M3 7h5l2 2h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9V7a2 2 0 0 1 2-2h4"/></svg>
+    </button>
   </div>
 
-  <div class="panel">
-    <div class="row">
-      <select id="fmt">
-        <option value="txt">TXT</option>
-        <option value="epub">EPUB</option>
-        <option value="html">HTML</option>
-      </select>
-      <label class="field" for="concurrency">并发
-        <input id="concurrency" type="number" min="1" value="12" style="width:110px" title="同时下载章节数量，建议 8-20" />
-      </label>
-      <label class="field" for="start">起始章节
-        <input id="start" type="number" min="1" value="1" style="width:110px" title="从第几章开始下载" />
-      </label>
-      <label class="field" for="end">结束章节(0=全部)
-        <input id="end" type="number" min="0" value="0" style="width:110px" title="下载到第几章，0 表示直到最新章" />
-      </label>
-      <button id="refreshBtn" class="secondary">刷新文件列表</button>
-      <button id="openOutBtn" class="secondary">打开下载目录</button>
+  <section class="card">
+    <div class="hd">
+      <h3>搜索</h3>
+      <span id="sourceCount" class="pill">书源加载中</span>
     </div>
-    <div id="downloadMsg" class="muted" style="margin-top:8px"></div>
-  </div>
+    <div class="body">
+      <div class="row">
+        <select id="source"></select>
+        <label class="field" title="聚合搜索结果上限">
+          条数
+          <select id="searchLimit">
+            <option value="30">30</option>
+            <option value="60" selected>60</option>
+            <option value="100">100</option>
+            <option value="150">150</option>
+          </select>
+        </label>
+        <label class="field" title="输出格式">
+          格式
+          <select id="fmt">
+            <option value="txt">TXT</option>
+            <option value="epub">EPUB</option>
+            <option value="html">HTML</option>
+          </select>
+        </label>
+        <label class="field" title="并发章节数">
+          并发 <input id="concurrency" type="number" min="1" value="12" />
+        </label>
+        <label class="field" title="起始章节">
+          起 <input id="start" type="number" min="1" value="1" />
+        </label>
+        <label class="field" title="结束章节，0代表全部">
+          止 <input id="end" type="number" min="0" value="0" />
+        </label>
+        <input id="kw" placeholder="输入书名或作者" style="min-width:260px;flex:1" />
+        <button id="searchBtn" class="icon-btn primary" title="搜索">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+      </div>
+      <div id="searchMsg" class="msg"></div>
 
-  <div class="panel">
-    <h3 style="margin:0 0 8px">已下载文件</h3>
-    <table>
-      <thead><tr><th>名称</th><th>类型</th><th>大小</th><th>时间</th><th>说明</th></tr></thead>
-      <tbody id="fileBody"></tbody>
-    </table>
-  </div>
+      <table id="resultTable" style="display:none">
+        <thead><tr><th>#</th><th>作品</th><th>最新章节</th><th>来源</th><th>下载</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+      <div id="pager" class="pager" style="display:none">
+        <button id="prevPageBtn" class="icon-btn" title="上一页">
+          <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span id="pageInfo">1 / 1</span>
+        <button id="nextPageBtn" class="icon-btn" title="下一页">
+          <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="hd">
+      <h3>下载任务</h3>
+      <button id="refreshJobsBtn" class="icon-btn" title="刷新任务">
+        <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></svg>
+      </button>
+    </div>
+    <div class="body">
+      <div id="downloadMsg" class="msg"></div>
+      <div id="jobsBox" class="jobs"></div>
+    </div>
+  </section>
 </div>
 
 <script>
-const state = { items: [] }
-
-function fmtSize(n) {
-  if (n < 1024) return n + ' B'
-  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB'
-  return (n / 1024 / 1024).toFixed(1) + ' MB'
+const PAGE_SIZE = 15
+const state = {
+  items: [],
+  page: 1,
+  jobs: [],
+  pollTimer: null,
 }
-function setMsg(id, text, cls='muted') {
+
+function setMsg(id, text, cls='') {
   const el = document.getElementById(id)
-  el.className = cls
-  el.textContent = text
+  el.className = 'msg' + (cls ? ' ' + cls : '')
+  el.textContent = text || ''
 }
-
 function esc(s) {
-  return String(s ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+  return String(s ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;')
 }
-
 function friendlyJobId(id) {
   const m = String(id || '').match(/^job-(\d+)$/)
-  if (!m) return ''
-  return `任务#${m[1]}`
+  return m ? `#${m[1]}` : (id || '-')
+}
+
+function renderResults() {
+  const table = document.getElementById('resultTable')
+  const pager = document.getElementById('pager')
+  const body = document.getElementById('resultBody')
+  const total = state.items.length
+  if (!total) {
+    table.style.display = ''
+    pager.style.display = 'none'
+    body.innerHTML = `<tr><td class="empty" colspan="5">未找到匹配小说</td></tr>`
+    return
+  }
+
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  if (state.page > pages) state.page = pages
+  const start = (state.page - 1) * PAGE_SIZE
+  const rows = state.items.slice(start, start + PAGE_SIZE)
+
+  body.innerHTML = rows.map((x, i) => {
+    const idx = start + i
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>
+          <div class="book">${esc(x.bookName)}</div>
+          <div class="small">作者：${esc(x.author || '未知')}</div>
+          <div class="small ellipsis">链接：${esc(x.url || '')}</div>
+        </td>
+        <td>
+          <div class="ellipsis">${esc(x.latestChapter || '暂无')}</div>
+          <div class="small">${esc(x.lastUpdateTime || '更新时间未知')}</div>
+        </td>
+        <td>
+          <div class="small">${esc(x.sourceName || ('书源 ' + x.sourceId))}</div>
+          <div class="small">状态：${esc(x.status || '未知')}</div>
+        </td>
+        <td><button class="icon-btn primary" title="下载" onclick="doDownload(${idx})"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></button></td>
+      </tr>
+    `
+  }).join('')
+
+  document.getElementById('pageInfo').textContent = `${state.page} / ${pages}`
+  document.getElementById('prevPageBtn').disabled = state.page <= 1
+  document.getElementById('nextPageBtn').disabled = state.page >= pages
+  table.style.display = ''
+  pager.style.display = ''
+}
+
+function statusPill(state) {
+  if (state === 'success') return '<span class="pill ok">已完成</span>'
+  if (state === 'error') return '<span class="pill err">失败</span>'
+  if (state === 'canceled') return '<span class="pill warn">已取消</span>'
+  if (state === 'running') return '<span class="pill">下载中</span>'
+  if (state === 'pending') return '<span class="pill">排队中</span>'
+  return '<span class="pill">未知</span>'
+}
+
+function statusDot(state) {
+  if (state === 'success') return 'success'
+  if (state === 'error') return 'error'
+  if (state === 'canceled') return 'canceled'
+  if (state === 'running') return 'running'
+  return ''
+}
+
+function renderJobs() {
+  const box = document.getElementById('jobsBox')
+  const jobs = state.jobs || []
+  if (!jobs.length) {
+    box.innerHTML = '<div class="job-row"><div class="small">暂无下载任务</div></div>'
+    return
+  }
+
+  box.innerHTML = jobs.map(job => {
+    const done = Number(job.done || 0)
+    const total = Number(job.total || 0)
+    const pct = total > 0 ? Math.min(100, Math.round(done * 10000 / total) / 100) : 0
+    const running = job.state === 'running' || job.state === 'pending'
+    const cancelBtn = running
+      ? `<button class="icon-btn warn" title="取消任务" onclick="cancelJob('${esc(job.id)}')"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/></svg></button>`
+      : ''
+
+    return `
+      <div class="job-row">
+        <div>
+          <div class="job-title">
+            <span class="dot ${statusDot(job.state)}"></span>
+            <span class="ellipsis">${esc(job.bookName || '未命名任务')}</span>
+            <span class="small">${esc(friendlyJobId(job.id))}</span>
+            ${statusPill(job.state)}
+          </div>
+          <div class="job-sub">${esc(job.message || '')}</div>
+          <div class="bar"><i style="width:${pct}%"></i></div>
+          <div class="job-sub">${done}/${total || 0} 章 · ${pct.toFixed(2)}% · ${new Date(job.updatedAt).toLocaleString()}</div>
+        </div>
+        <div class="job-actions">${cancelBtn}</div>
+      </div>
+    `
+  }).join('')
 }
 
 async function loadSources() {
   const r = await fetch('/api/sources')
   const j = await r.json()
   if (j.code !== 200) throw new Error(j.message)
-  const source = document.getElementById('source')
-  source.innerHTML = j.data.map(s => `<option value="${s.id}">${s.id}. ${s.name}</option>`).join('')
+  const list = j.data || []
+  document.getElementById('sourceCount').textContent = `书源 ${list.length}`
+  const allOpt = `<option value="0">全部书源（聚合）</option>`
+  document.getElementById('source').innerHTML = allOpt + list.map(s => `<option value="${s.id}">${s.id}. ${esc(s.name)}</option>`).join('')
 }
 
 async function doSearch() {
   const kw = document.getElementById('kw').value.trim()
   const sid = document.getElementById('source').value
-  if (!kw) return
+  if (!kw) {
+    setMsg('searchMsg', '请输入关键词', 'err')
+    return
+  }
   setMsg('searchMsg', '搜索中...')
-  const u = new URL('/api/search', window.location.origin)
+  const u = new URL('/api/search', location.origin)
   u.searchParams.set('kw', kw)
   u.searchParams.set('sourceId', sid)
+  u.searchParams.set('limit', document.getElementById('searchLimit').value || '60')
   const r = await fetch(u)
   const j = await r.json()
   if (j.code !== 200) throw new Error(j.message)
   state.items = j.data || []
-  const tb = document.getElementById('resultBody')
-  if (!state.items.length) {
-    tb.innerHTML = `<tr><td class="empty" colspan="5">未找到匹配小说，请尝试更完整书名或切换书源</td></tr>`
-  } else {
-    tb.innerHTML = state.items.map((x, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>
-          <div class="book-title">${esc(x.bookName)}</div>
-          <div class="cell-sub">作者：${esc(x.author || '未知')}</div>
-          <div class="cell-sub ellipsis">链接：${esc(x.url || '')}</div>
-        </td>
-        <td>
-          <div class="ellipsis">${esc(x.latestChapter || '暂无')}</div>
-          <div class="cell-sub">${esc(x.lastUpdateTime || '更新时间未知')}</div>
-        </td>
-        <td>
-          <div><span class="badge">${esc(x.sourceName || ('书源 ' + x.sourceId))}</span></div>
-          <div class="cell-sub">状态：${esc(x.status || '未知')}</div>
-          <div class="cell-sub">类别：${esc(x.category || '-')}</div>
-        </td>
-        <td><button onclick="doDownload(${i})">下载</button></td>
-      </tr>
-    `).join('')
-  }
-  document.getElementById('resultTable').style.display = ''
-  setMsg('searchMsg', `共 ${state.items.length} 条结果`, 'ok')
+  state.page = 1
+  renderResults()
+  setMsg('searchMsg', `共 ${state.items.length} 条结果（每页 ${PAGE_SIZE} 条）`, 'ok')
 }
 
-async function doDownload(i) {
-  const item = state.items[i]
+async function doDownload(index) {
+  const item = state.items[index]
   if (!item) return
-  const searchBtn = document.getElementById('searchBtn')
-  searchBtn.disabled = true
+  document.getElementById('searchBtn').disabled = true
   const payload = {
     url: item.url,
-    sourceId: Number(document.getElementById('source').value),
+    bookName: item.bookName,
+    sourceId: Number(item.sourceId || document.getElementById('source').value),
     format: document.getElementById('fmt').value,
     concurrency: Number(document.getElementById('concurrency').value || 12),
     start: Number(document.getElementById('start').value || 1),
-    end: Number(document.getElementById('end').value || 0)
+    end: Number(document.getElementById('end').value || 0),
   }
-  setMsg('downloadMsg', `开始下载: ${item.bookName} ...`)
+  setMsg('downloadMsg', `已创建下载任务：${item.bookName}`)
   try {
     const r = await fetch('/api/download', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     })
     const j = await r.json()
     if (j.code !== 200) throw new Error(j.message)
-    const jobId = j.data && j.data.id
-    if (!jobId) throw new Error('任务创建失败')
-    await waitJobDone(jobId)
+    await refreshJobs()
+    document.getElementById('searchBtn').disabled = false
   } catch (e) {
     setMsg('downloadMsg', e.message || '下载失败', 'err')
-  } finally {
-    searchBtn.disabled = false
+    document.getElementById('searchBtn').disabled = false
   }
 }
 
-async function waitJobDone(jobId) {
-  for (;;) {
-    const r = await fetch('/api/job?id=' + encodeURIComponent(jobId))
+async function cancelJob(jobID) {
+  try {
+    const r = await fetch('/api/job/cancel', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ id: jobID })
+    })
     const j = await r.json()
-    if (j.code !== 200) throw new Error(j.message || '任务查询失败')
-    const job = j.data
-    if (job.state === 'pending') {
-      const tip = friendlyJobId(job.id)
-      setMsg('downloadMsg', tip ? `任务排队中...（${tip}）` : '任务排队中...')
-    } else if (job.state === 'running') {
-      const tip = friendlyJobId(job.id)
-      setMsg('downloadMsg', tip ? `下载中...（${tip}）` : '下载中...')
-    } else if (job.state === 'success') {
-      setMsg('downloadMsg', '下载完成: ' + (job.path || ''), 'ok')
-      await loadFiles()
-      return
-    } else if (job.state === 'error') {
-      throw new Error(job.message || '下载失败')
-    }
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    if (j.code !== 200) throw new Error(j.message)
+    setMsg('downloadMsg', '已发出取消请求')
+    await refreshJobs()
+  } catch (e) {
+    setMsg('downloadMsg', e.message || '取消失败', 'err')
   }
 }
 
-async function loadFiles() {
-  const r = await fetch('/api/files')
+async function refreshJobs() {
+  const r = await fetch('/api/jobs?limit=50')
   const j = await r.json()
   if (j.code !== 200) throw new Error(j.message)
-  const tb = document.getElementById('fileBody')
-  const files = j.data || []
-  if (!files.length) {
-    tb.innerHTML = `<tr><td class="empty" colspan="5">暂无下载文件，先去上方搜索并下载</td></tr>`
-    return
-  }
-  tb.innerHTML = files.map(f => `
-    <tr>
-      <td>${esc(f.name)}</td>
-      <td>${f.isDir ? '<span class="badge">目录</span>' : '<span class="badge">文件</span>'}</td>
-      <td>${f.isDir ? '-' : fmtSize(f.size)}</td>
-      <td>${new Date(f.modTime).toLocaleString()}</td>
-      <td><span class="muted">请使用下载目录</span></td>
-    </tr>
-  `).join('')
+  state.jobs = j.data || []
+  renderJobs()
+
+  const head = state.jobs[0]
+  if (!head) return
+  if (head.state === 'success') setMsg('downloadMsg', head.path ? ('最近完成：' + head.path) : '最近任务完成', 'ok')
+  else if (head.state === 'error') setMsg('downloadMsg', head.message || '最近任务失败', 'err')
+  else if (head.state === 'canceled') setMsg('downloadMsg', '最近任务已取消')
+  else setMsg('downloadMsg', head.message || '下载中...')
+}
+
+function ensurePolling() {
+  if (state.pollTimer) return
+  state.pollTimer = setInterval(async () => {
+    try {
+      await refreshJobs()
+    } catch (e) {
+      setMsg('downloadMsg', e.message || '任务刷新失败', 'err')
+    }
+  }, 1000)
 }
 
 async function openOutputDir() {
   const r = await fetch('/api/open-output', { method: 'POST' })
   const j = await r.json()
   if (j.code !== 200) throw new Error(j.message || '打开目录失败')
-  setMsg('downloadMsg', '已尝试打开下载目录: ' + ((j.data && j.data.path) || ''), 'ok')
+  setMsg('downloadMsg', '已尝试打开下载目录', 'ok')
 }
 
 document.getElementById('searchBtn').onclick = () => doSearch().catch(e => setMsg('searchMsg', e.message, 'err'))
-document.getElementById('refreshBtn').onclick = () => loadFiles().catch(e => setMsg('downloadMsg', e.message, 'err'))
-document.getElementById('openOutBtn').onclick = () => openOutputDir().catch(e => setMsg('downloadMsg', e.message, 'err'))
 document.getElementById('kw').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') doSearch().catch(err => setMsg('searchMsg', err.message, 'err'))
 })
+document.getElementById('prevPageBtn').onclick = () => { if (state.page > 1) { state.page--; renderResults() } }
+document.getElementById('nextPageBtn').onclick = () => {
+  const pages = Math.max(1, Math.ceil(state.items.length / PAGE_SIZE))
+  if (state.page < pages) { state.page++; renderResults() }
+}
+document.getElementById('refreshJobsBtn').onclick = () => refreshJobs().catch(e => setMsg('downloadMsg', e.message, 'err'))
+document.getElementById('openOutBtn').onclick = () => openOutputDir().catch(e => setMsg('downloadMsg', e.message, 'err'))
 
-Promise.all([loadSources(), loadFiles()]).catch(e => {
+renderResults()
+renderJobs()
+Promise.all([loadSources(), refreshJobs()]).catch(e => {
   setMsg('searchMsg', e.message, 'err')
   setMsg('downloadMsg', e.message, 'err')
 })
+ensurePolling()
 </script>
 </body>
 </html>

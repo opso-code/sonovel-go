@@ -59,6 +59,19 @@ func SelectHTML(sel *goquery.Selection, query string) string {
 	if q == "" {
 		return ""
 	}
+	if strings.HasPrefix(q, "/") {
+		n := strings.ToLower(strings.TrimSpace(q))
+		switch n {
+		case "/html", "//html", "(//html)[1]":
+			h, err := sel.Html()
+			if err != nil {
+				return ""
+			}
+			return ApplyInlineJS(js, strings.TrimSpace(h))
+		default:
+			return ""
+		}
+	}
 	s := sel.Find(q)
 	if s.Length() == 0 {
 		return ""

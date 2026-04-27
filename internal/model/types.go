@@ -132,4 +132,6 @@ type Config struct {
 	ChapterStart  int
 	ChapterEnd    int
 	OnProgress    func(done, total int)
+	OnChapter     func(done, total int, title string)
+	ShouldCancel  func() bool
 }

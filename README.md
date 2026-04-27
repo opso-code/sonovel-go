@@ -10,13 +10,13 @@ Go 语言实现的 So Novel 核心功能版本（规则驱动抓取）。
 - 抓取：解析书籍详情、目录、章节正文。
 - 下载：支持并发抓章节、失败重试、章节范围下载。
 - 导出：`txt`（默认）、`epub`、`html`。
-- 交互方式：CLI + TUI + Web UI。
+- 交互方式：默认 Web UI（可选 TUI/CLI 高级模式）。
 
 ## 当前限制
 
 - 优先支持 CSS 选择器规则。
 - `xpath` 规则当前未实现（后续可补 `htmlquery` 方案）。
-- `@js:` 目前实现了常见字符串处理（如 `replace`、前缀拼接），复杂 JS 逻辑暂不完整。
+- `@js:` 已支持规则内联 JS 执行（用于正文解密/清洗等场景）。
 - 暂未实现 PDF 导出。
 
 ## 快速开始
@@ -28,13 +28,21 @@ make test
 
 ## 命令说明
 
-### 1) 搜索（CLI，支持选行直接下载）
+### 1) 默认启动（推荐）
+
+```bash
+go run ./cmd/sonovel --config ./config.toml --port 7765
+```
+
+程序会启动 Web，并按配置自动打开浏览器（可用 `--no-browser` 关闭）。
+
+### 2) 搜索（CLI，支持选行直接下载）
 
 ```bash
 go run ./cmd/sonovel search --kw "斗罗大陆" --config ./config.toml
 ```
 
-### 2) 下载（CLI）
+### 3) 下载（CLI）
 
 ```bash
 go run ./cmd/sonovel download \
@@ -44,7 +52,7 @@ go run ./cmd/sonovel download \
   --concurrency 12
 ```
 
-### 3) 章节范围下载
+### 4) 章节范围下载
 
 ```bash
 go run ./cmd/sonovel download \
@@ -54,19 +62,11 @@ go run ./cmd/sonovel download \
   --config ./config.toml
 ```
 
-### 4) 终端交互模式（TUI）
+### 5) 终端交互模式（TUI）
 
 ```bash
-go run ./cmd/sonovel tui --config ./config.toml
+go run ./cmd/sonovel --tui --config ./config.toml
 ```
-
-### 5) Web UI
-
-```bash
-go run ./cmd/sonovel web --config ./config.toml --port 7765
-```
-
-浏览器打开：`http://localhost:7765`
 
 ## Makefile
 
@@ -130,7 +130,7 @@ open_browser = true
 
 ## 目录结构
 
-- `cmd/sonovel`: 程序入口（`search` / `download` / `tui` / `web`）。
+- `cmd/sonovel`: 程序入口（默认 Web；可用 `--tui` / `search` / `download` / `init`）。
 - `internal/rule`: 规则加载与默认值处理。
 - `internal/parser`: 搜索/详情/目录/章节解析。
 - `internal/crawler`: 并发抓取与重试调度。

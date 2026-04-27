@@ -15,7 +15,7 @@ GOMODCACHE ?= $(CURDIR)/.gomodcache
 
 help:
 	@echo "Targets:"
-	@echo "  make run            # 本地运行 CLI (显示 help)"
+	@echo "  make run            # 本地运行 Web UI (:7765)"
 	@echo "  make init           # 生成 config.toml 并初始化目录"
 	@echo "  make run-tui        # 本地运行 TUI"
 	@echo "  make run-web        # 本地运行 Web UI (:7765)"
@@ -31,16 +31,16 @@ test:
 	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) test ./...
 
 run:
-	$(GO) run $(CMD)
+	$(GO) run $(CMD) --config ./config.toml --port 7765
 
 init:
 	$(GO) run $(CMD) init --config ./config.toml --rules-dir ./rules --out ./downloads
 
 run-tui:
-	$(GO) run $(CMD) tui --config ./config.toml --rules ./rules/main.json --out ./downloads
+	$(GO) run $(CMD) --tui --config ./config.toml --rules ./rules/main.json --out ./downloads
 
 run-web:
-	$(GO) run $(CMD) web --config ./config.toml --port 7765 --rules ./rules/main.json --out ./downloads
+	$(GO) run $(CMD) --config ./config.toml --port 7765 --rules ./rules/main.json --out ./downloads
 
 build:
 	CGO_ENABLED=0 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o ./$(BIN)$$( [ "$$(go env GOOS)" = "windows" ] && echo ".exe" ) $(CMD)

@@ -24,8 +24,8 @@ const defaultConfigPath = "./config.toml"
 
 func main() {
 	if len(os.Args) < 2 {
-		usage()
-		os.Exit(1)
+		runDefault(os.Args[1:])
+		return
 	}
 
 	sub := os.Args[1]
@@ -34,16 +34,28 @@ func main() {
 		runSearch(os.Args[2:])
 	case "download":
 		runDownload(os.Args[2:])
+	case "init":
+		runInit(os.Args[2:])
 	case "web":
 		runWeb(os.Args[2:])
 	case "tui":
 		runTUI(os.Args[2:])
-	case "init":
-		runInit(os.Args[2:])
-	default:
+	case "-h", "--help", "help":
 		usage()
-		os.Exit(1)
+	default:
+		// 默认模式：直接启动 Web，未知参数按 Web 参数解释。
+		runDefault(os.Args[1:])
 	}
+}
+
+func runDefault(args []string) {
+	for _, a := range args {
+		if a == "--tui" {
+			runTUI(stripArg(args, "--tui"))
+			return
+		}
+	}
+	runWeb(args)
 }
 
 func runSearch(args []string) {
@@ -169,7 +181,17 @@ func runWeb(args []string) {
 	format := fs.String("format", fileCfg.Format, "default output format")
 	port := fs.Int("port", fileCfg.WebPort, "web port")
 	openBrowser := fs.Bool("open", fileCfg.WebOpen, "auto open default browser")
+	noBrowser := fs.Bool("no-browser", false, "disable auto open browser")
+	tuiMode := fs.Bool("tui", false, "run terminal ui mode")
 	_ = fs.Parse(args)
+	if *tuiMode {
+		cfg := modelConfigFromFile(fileCfg)
+		cfg.RulesFile = *rules
+		cfg.OutputDir = *out
+		cfg.Format = *format
+		must(tui.New(cfg).Run())
+		return
+	}
 
 	cfg := modelConfigFromFile(fileCfg)
 	cfg.RulesFile = *rules
@@ -180,7 +202,7 @@ func runWeb(args []string) {
 	addr := fmt.Sprintf(":%d", *port)
 	url := fmt.Sprintf("http://localhost%s", addr)
 	fmt.Printf("Web UI: %s\n", url)
-	if *openBrowser {
+	if *openBrowser && !*noBrowser {
 		if err := openURL(url); err != nil {
 			fmt.Printf("open browser failed: %v\n", err)
 		}
@@ -245,11 +267,16 @@ func runInit(args []string) {
 
 func usage() {
 	fmt.Println(`sonovel-go
-  init     [--config ./config.toml] [--rules-dir ./rules] [--out ./downloads]
-  search   --kw "xx" [--config ./config.toml] [--source-id 1] [--rules path] [可直接选行下载]
-  download --url "https://..." [--config ./config.toml] [--source-id 1] [--format txt|epub|html] [--out ./downloads]
-  tui      [--config ./config.toml] [--rules path] [--out ./downloads]
-  web      [--config ./config.toml] [--port 7765] [--rules path] [--out ./downloads] [--format txt] [--open true|false]`)
+  默认直接启动 Web UI（自动打开浏览器）:
+    sonovel-go [--config ./config.toml] [--port 7765] [--no-browser]
+
+  初始化:
+    sonovel-go init [--config ./config.toml] [--rules-dir ./rules] [--out ./downloads]
+
+  高级模式:
+    sonovel-go --tui [--config ./config.toml]
+    sonovel-go search --kw "xx" [--source-id 1]
+    sonovel-go download --url "https://..." [--source-id 1]`)
 }
 
 func must(err error) {
@@ -368,4 +395,15 @@ func resolveConfigPath(args []string, fallback string) string {
 		}
 	}
 	return fallback
+}
+
+func stripArg(args []string, target string) []string {
+	out := make([]string, 0, len(args))
+	for _, a := range args {
+		if a == target {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }
