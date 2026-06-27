@@ -31,7 +31,7 @@ jobs:
       
       - name: Build Linux
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel ./cmd/sonovel
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
       
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
