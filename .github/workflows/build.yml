@@ -26,7 +26,7 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-  build-linux:
+  release:
     needs: test
     runs-on: ubuntu-latest
     steps:
@@ -40,91 +40,21 @@ jobs:
 
       - name: Build Linux
         run: |
-          export GOOS=linux GOARCH=amd64 CGO_ENABLED=0
-          go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
           ls -lh ./bin/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: go-sonovel-linux-amd64
-          path: bin/go-sonovel-linux-amd64
-          if-no-files-found: warn
-          retention-days: 7
-
-  build-windows:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
 
       - name: Build Windows
         run: |
-          export GOOS=windows GOARCH=amd64 CGO_ENABLED=0
-          go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
           ls -lh ./bin/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: go-sonovel-windows-amd64.exe
-          path: bin/go-sonovel-windows-amd64.exe
-          if-no-files-found: warn
-          retention-days: 7
-
-  build-macos:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
 
       - name: Build macOS
         run: |
-          export GOOS=darwin GOARCH=amd64 CGO_ENABLED=0
-          go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
           ls -lh ./bin/
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: go-sonovel-darwin
-          path: bin/go-sonovel-darwin
-          if-no-files-found: warn
-          retention-days: 7
-
-  release:
-    needs: [build-linux, build-windows, build-macos]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Create bin directory
-        run: mkdir -p ./bin
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: ./bin
-          pattern: |
-            go-sonovel-linux-amd64
-            go-sonovel-windows-amd64.exe
-            go-sonovel-darwin
-          merge-multiple: true
-
-      - name: List artifacts
-        run: ls -lh ./bin/
 
       - name: Create release archives
         run: |
