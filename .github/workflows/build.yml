@@ -31,7 +31,7 @@ jobs:
       
       - name: Build Linux
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
       
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -56,7 +56,7 @@ jobs:
       
       - name: Build Windows
         run: |
-          go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -81,7 +81,7 @@ jobs:
       
       - name: Build macOS
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -103,16 +103,31 @@ jobs:
           path: ./bin
           merge-multiple: true
       
-      - name: List binaries
-        run: ls -lh bin/
+      - name: Copy rules to release
+        run: |
+          mkdir -p ./release
+          cp -r rules ./release/
+          cp config.toml ./release/ 2>/dev/null || true
+          cp README.md ./release/ 2>/dev/null || true
+          cp LICENSE ./release/ 2>/dev/null || true
+      
+      - name: Package release archives
+        run: |
+          cd ./release
+          tar czf ../go-sonovel-linux-amd64.tar.gz go-sonovel-linux-amd64 rules/ README.md config.toml LICENSE 2>/dev/null || true
+          zip -r ../go-sonovel-windows-amd64.zip go-sonovel-windows-amd64.exe rules/ README.md config.toml LICENSE 2>/dev/null || true
+          tar czf ../go-sonovel-darwin-amd64.tar.gz go-sonovel-darwin-amd64 rules/ README.md config.toml LICENSE 2>/dev/null || true
+      
+      - name: List release files
+        run: ls -lh ./release/
       
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            bin/go-sonovel-linux-amd64
-            bin/go-sonovel-windows-amd64.exe
-            bin/go-sonovel-darwin-amd64
+            go-sonovel-linux-amd64.tar.gz
+            go-sonovel-windows-amd64.zip
+            go-sonovel-darwin-amd64.tar.gz
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
           body: |
@@ -123,8 +138,8 @@ jobs:
             - **Branch**: ${{ github.ref }}
             
             ### 📄 更新内容
-            - Linux: `bin/go-sonovel-linux-amd64`
-            - Windows: `bin/go-sonovel-windows-amd64.exe`
-            - macOS: `bin/go-sonovel-darwin-amd64`
+            - Linux: `go-sonovel-linux-amd64.tar.gz`
+            - Windows: `go-sonovel-windows-amd64.zip`
+            - macOS: `go-sonovel-darwin-amd64.tar.gz`
             
             [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})

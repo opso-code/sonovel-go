@@ -10,9 +10,9 @@ build:
 # 构建所有平台（本地）
 build-all:
 	@echo "Building for all platforms..."
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
-	go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
+	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
 	@echo "All platforms built successfully!"
 	@ls -lh bin/
 
