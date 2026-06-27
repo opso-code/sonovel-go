@@ -40,14 +40,16 @@ jobs:
 
       - name: Build Linux
         run: |
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
+          export GOOS=linux GOARCH=amd64 CGO_ENABLED=0
+          go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
+          ls -lh ./bin/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: go-sonovel-linux-amd64
           path: bin/go-sonovel-linux-amd64
+          if-no-files-found: warn
           retention-days: 7
 
   build-windows:
@@ -64,14 +66,16 @@ jobs:
 
       - name: Build Windows
         run: |
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+          export GOOS=windows GOARCH=amd64 CGO_ENABLED=0
+          go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+          ls -lh ./bin/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: go-sonovel-windows-amd64.exe
           path: bin/go-sonovel-windows-amd64.exe
+          if-no-files-found: warn
           retention-days: 7
 
   build-macos:
@@ -88,9 +92,8 @@ jobs:
 
       - name: Build macOS
         run: |
-          mkdir -p ./bin
-          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
+          export GOOS=darwin GOARCH=amd64 CGO_ENABLED=0
+          go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
           ls -lh ./bin/
 
       - name: Upload artifact
@@ -98,6 +101,7 @@ jobs:
         with:
           name: go-sonovel-darwin
           path: bin/go-sonovel-darwin
+          if-no-files-found: warn
           retention-days: 7
 
   release:
@@ -172,8 +176,8 @@ jobs:
             - **Branch**: ${{ github.ref }}
 
             ### 📄 下载
-            - **Linux**: `go-sonovel-linux-amd64.tar.gz` (二进制: `go-sonovel`)
-            - **Windows**: `go-sonovel-windows-amd64.zip` (二进制: `go-sonovel.exe`)
-            - **macOS**: `go-sonovel-darwin.tar.gz` (二进制: `go-sonovel`)
+            - **Linux**: `go-sonovel-linux-amd64.tar.gz` (二进制：`go-sonovel`)
+            - **Windows**: `go-sonovel-windows-amd64.zip` (二进制：`go-sonovel.exe`)
+            - **macOS**: `go-sonovel-darwin.tar.gz` (二进制：`go-sonovel`)
 
             [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})
