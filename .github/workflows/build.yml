@@ -46,4 +46,4 @@ jobs:
             - **Commit**: [`${{ github.sha }}`](https://github.com/opso-code/sonovel-go/commit/${{ github.sha }})
             - **Branch**: ${{ github.ref_name == 'main' && 'main (default)' || github.ref_name }}
 
-            [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.ref_name || '' }}..${{ github.sha }})
+            [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ steps.previoustag.outputs.previous_tag }}..${{ github.event.inputs.tag || github.ref_name }})
