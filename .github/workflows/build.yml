@@ -88,6 +88,7 @@ jobs:
 
       - name: Build macOS
         run: |
+          mkdir -p ./bin
           GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
             go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
           ls -lh ./bin/
