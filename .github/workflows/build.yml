@@ -86,6 +86,8 @@ jobs:
     needs: [test, build-windows, build-macos]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       
@@ -107,4 +109,10 @@ jobs:
             bin/sonovel-windows-amd64.exe
             bin/sonovel-darwin-amd64
           tag_name: v${{ github.sha }}
-          token: ${{ secrets.PUBLISH_TOKEN }}
+          body: |
+            ## Release ${{ github.sha }}
+            - Linux: `bin/sonovel-linux-amd64`
+            - Windows: `bin/sonovel-windows-amd64.exe`
+            - macOS: `bin/sonovel-darwin-amd64`
+            - [Full Changelog](https://github.com/opso-code/sonovel-go/compare/v${{ github.event.previous_tag || '0' }}..${{ github.sha }})
+          generate_release_notes: false
