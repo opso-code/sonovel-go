@@ -15,7 +15,8 @@ jobs:
   test-and-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout 
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -29,15 +30,13 @@ jobs:
 
       - name: Build and package all platforms
         run: |
-          make build-all && make dist
+          make dist
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
-            go-sonovel-linux-amd64.tar.gz
-            go-sonovel-windows-amd64.zip
-            go-sonovel-darwin-amd64.tar.gz
+            ./dist/*
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: Release ${{ github.event.inputs.tag || github.ref_name }}
           body: |
@@ -47,32 +46,4 @@ jobs:
             - **Commit**: [`${{ github.sha }}`](https://github.com/opso-code/sonovel-go/commit/${{ github.sha }})
             - **Branch**: ${{ github.ref_name == 'main' && 'main (default)' || github.ref_name }}
 
-            ### 📄 下载
-
-            <details>
-              <summary>🔽 点击展开查看下载链接</summary>
-
-            #### Linux x86_64 (amd64)
-            - `go-sonovel-linux-amd64.tar.gz` (~500KB)
-              ```bash
-              tar xzf go-sonovel-linux-amd64.tar.gz
-              ./go-sonovel --help
-              ```
-
-            #### Windows x86_64 (amd64)
-            - `go-sonovel-windows-amd64.zip` (~500KB)
-              ```powershell
-              Expand-Archive -Path go-sonovel-windows-amd64.zip -DestinationPath .
-              .\go-sonovel.exe --help
-              ```
-
-            #### macOS Intel x86_64 (amd64)
-            - `go-sonovel-darwin-amd64.tar.gz` (~500KB)
-              ```bash
-              tar xzf go-sonovel-darwin-amd64.tar.gz
-              ./go-sonovel --help
-              ```
-
-              </details>
-
-            [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})
+            [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.ref_name || '' }}..${{ github.sha }})
