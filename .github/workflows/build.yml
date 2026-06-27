@@ -12,24 +12,10 @@ on:
         default: 'v0.1.0'
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            artifact: go-sonovel-linux-amd64
-          - goos: windows
-            goarch: amd64
-            artifact: go-sonovel-windows-amd64.exe
-          - goos: darwin
-            goarch: amd64
-            artifact: go-sonovel-darwin
-      fail-fast: true
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -37,64 +23,133 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      - name: Install dependencies
-        run: go mod download
-
       - name: Run tests
         run: go test ./...
 
-      - name: Build ${{ matrix.goos }}
+  build-linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Build Linux
         run: |
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/${{ matrix.artifact }} ./cmd/sonovel
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: ${{ matrix.artifact }}
-          path: bin/${{ matrix.artifact }}
+          name: go-sonovel-linux-amd64
+          path: bin/go-sonovel-linux-amd64
+          retention-days: 7
+
+  build-windows:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Build Windows
+        run: |
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: go-sonovel-windows-amd64.exe
+          path: bin/go-sonovel-windows-amd64.exe
+          retention-days: 7
+
+  build-macos:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Build macOS
+        run: |
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
+            go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin ./cmd/sonovel
+          ls -lh ./bin/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: go-sonovel-darwin
+          path: bin/go-sonovel-darwin
           retention-days: 7
 
   release:
-    needs: build
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
-          pattern: go-sonovel-*
           path: ./bin
-          merge-multiple: true
+          pattern: |
+            go-sonovel-linux-amd64
+            go-sonovel-windows-amd64.exe
+            go-sonovel-darwin
+          merge-multiple: false
+
+      - name: List artifacts
+        run: ls -lh ./bin/
 
       - name: Create release archives
         run: |
+          set -euo pipefail
+
           mkdir -p ./release/linux ./release/windows ./release/macos
 
           # Linux
           cp bin/go-sonovel-linux-amd64 ./release/linux/go-sonovel
           cp -r rules ./release/linux/
-          cp config.toml ./release/linux/ 2>/dev/null || true
-          cp README.md ./release/linux/ 2>/dev/null || true
-          cp LICENSE ./release/linux/ 2>/dev/null || true
-          tar czf go-sonovel-linux-amd64.tar.gz -C ./release/linux go-sonovel rules/ README.md config.toml LICENSE 2>/dev/null || true
+          cp config.toml ./release/linux/ || true
+          cp README.md ./release/linux/ || true
+          cp LICENSE ./release/linux/ || true
+          tar czf go-sonovel-linux-amd64.tar.gz -C ./release/linux go-sonovel rules/ README.md config.toml LICENSE
 
           # Windows
           cp bin/go-sonovel-windows-amd64.exe ./release/windows/go-sonovel.exe
           cp -r rules ./release/windows/
-          cp config.toml ./release/windows/ 2>/dev/null || true
-          cp README.md ./release/windows/ 2>/dev/null || true
-          cp LICENSE ./release/windows/ 2>/dev/null || true
-          cd ./release/windows && zip -r ../../go-sonovel-windows-amd64.zip go-sonovel.exe rules/ README.md config.toml LICENSE 2>/dev/null || true
+          cp config.toml ./release/windows/ || true
+          cp README.md ./release/windows/ || true
+          cp LICENSE ./release/windows/ || true
+          cd ./release/windows && zip -r ../../go-sonovel-windows-amd64.zip go-sonovel.exe rules/ README.md config.toml LICENSE
+          cd ../..
 
           # macOS
           cp bin/go-sonovel-darwin ./release/macos/go-sonovel
           cp -r rules ./release/macos/
-          cp config.toml ./release/macos/ 2>/dev/null || true
-          cp README.md ./release/macos/ 2>/dev/null || true
-          cp LICENSE ./release/macos/ 2>/dev/null || true
-          tar czf go-sonovel-darwin.tar.gz -C ./release/macos go-sonovel rules/ README.md config.toml LICENSE 2>/dev/null || true
+          cp config.toml ./release/macos/ || true
+          cp README.md ./release/macos/ || true
+          cp LICENSE ./release/macos/ || true
+          tar czf go-sonovel-darwin.tar.gz -C ./release/macos go-sonovel rules/ README.md config.toml LICENSE
+
+          ls -lh ./release/*
 
       - name: Create release
         uses: softprops/action-gh-release@v2
