@@ -30,7 +30,8 @@ jobs:
         run: go test ./...
       
       - name: Build Linux
-        run: go build -o ./bin/sonovel-linux-amd64 ./cmd/sonovel
+        run: |
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/sonovel-linux-amd64 ./cmd/sonovel
       
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -54,7 +55,8 @@ jobs:
         run: go mod download
       
       - name: Build Windows
-        run: go build -o ./bin/sonovel-windows-amd64.exe ./cmd/sonovel
+        run: |
+          go build -ldflags="-s -w" -o ./bin/sonovel-windows-amd64.exe ./cmd/sonovel
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -78,7 +80,8 @@ jobs:
         run: go mod download
       
       - name: Build macOS
-        run: go build -o ./bin/sonovel-darwin-amd64 ./cmd/sonovel
+        run: |
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/sonovel-darwin-amd64 ./cmd/sonovel
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
