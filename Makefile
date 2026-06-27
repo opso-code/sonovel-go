@@ -1,73 +1,35 @@
-APP := sonovel-go
-CMD := ./cmd/sonovel
-DIST := dist
-BIN := sonovel-go
-VERSION ?= 0.0.1
+.PHONY: build test release clean
 
-GO ?= go
-GOFLAGS ?=
-LDFLAGS ?= -s -w
-GOPROXY ?= https://proxy.golang.org,direct
-GOCACHE ?= $(CURDIR)/.gocache
-GOMODCACHE ?= $(CURDIR)/.gomodcache
+# 版本
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
-.PHONY: help tidy test run run-tui run-web init build build-all package-all clean
-
-help:
-	@echo "Targets:"
-	@echo "  make run            # 本地运行 Web UI (:7765)"
-	@echo "  make init           # 生成 config.toml 并初始化目录"
-	@echo "  make run-tui        # 本地运行 TUI"
-	@echo "  make run-web        # 本地运行 Web UI (:7765)"
-	@echo "  make test           # 运行 go test"
-	@echo "  make build          # 构建当前平台二进制到项目根目录(sonovel-go/sonovel-go.exe)"
-	@echo "  make build-all      # 构建并打包 x64 多平台压缩包(仅保留压缩包)"
-	@echo "  make clean          # 清理 dist"
-
-tidy:
-	$(GO) mod tidy
-
-test:
-	GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) test ./...
-
-run:
-	$(GO) run $(CMD) --config ./config.toml --port 7765
-
-init:
-	$(GO) run $(CMD) init --config ./config.toml --rules-dir ./rules --out ./downloads
-
-run-tui:
-	$(GO) run $(CMD) --tui --config ./config.toml --rules ./rules/main.json --out ./downloads
-
-run-web:
-	$(GO) run $(CMD) --config ./config.toml --port 7765 --rules ./rules/main.json --out ./downloads
-
+# 构建
 build:
-	CGO_ENABLED=0 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o ./$(BIN)$$( [ "$$(go env GOOS)" = "windows" ] && echo ".exe" ) $(CMD)
+	go build -o ./bin/sonovel ./cmd/sonovel
 
-build-all:
-	@mkdir -p $(DIST)/packages
-	rm -rf $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle
-	rm -rf $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle
-	rm -rf $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle
-	mkdir -p $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/rules
-	mkdir -p $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/rules
-	mkdir -p $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/rules
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(CMD)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(CMD)
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE) GOPROXY=$(GOPROXY) $(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(CMD)
-	cp $(DIST)/$(APP)_$(VERSION)_linux_amd64 $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/$(BIN)
-	cp $(DIST)/$(APP)_$(VERSION)_darwin_amd64 $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/$(BIN)
-	cp $(DIST)/$(APP)_$(VERSION)_windows_amd64.exe $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/$(BIN).exe
-	cp config.toml $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/
-	cp config.toml $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/
-	cp config.toml $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/
-	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_linux_amd64_bundle/rules/
-	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_darwin_amd64_bundle/rules/
-	cp -R rules/* $(DIST)/$(APP)_$(VERSION)_windows_amd64_bundle/rules/
-	tar -czf $(DIST)/packages/$(APP)_$(VERSION)_linux_amd64.tar.gz -C $(DIST) $(APP)_$(VERSION)_linux_amd64_bundle
-	tar -czf $(DIST)/packages/$(APP)_$(VERSION)_darwin_amd64.tar.gz -C $(DIST) $(APP)_$(VERSION)_darwin_amd64_bundle
-	cd $(DIST) && zip -rq packages/$(APP)_$(VERSION)_windows_amd64.zip $(APP)_$(VERSION)_windows_amd64_bundle
+# 测试
+test:
+	go test ./... -v
 
+# 清理
 clean:
-	rm -rf $(DIST)
+	rm -rf bin/
+	go clean
+
+# 发布
+release:
+	git tag -a v$(VERSION) -m "Release v$(VERSION)"
+	git push origin v$(VERSION)
+
+# 构建所有平台
+build-all:
+	@echo "Building for all platforms..."
+	@echo "Linux: go build -o bin/sonovel ./cmd/sonovel"
+	@echo "Windows: go build -o bin/sonovel.exe ./cmd/sonovel"
+	@echo "macOS: go build -o bin/sonovel ./cmd/sonovel"
+
+# 验证
+verify:
+	go mod download
+	go test ./...
+	go build ./...

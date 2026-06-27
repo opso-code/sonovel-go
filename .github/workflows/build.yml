@@ -1,0 +1,116 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Run tests
+        run: go test ./...
+      
+      - name: Build
+        run: go build -o ./bin/sonovel ./cmd/sonovel
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonovel-linux-amd64
+          path: bin/sonovel
+          retention-days: 7
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Build
+        run: go build -o ./bin/sonovel.exe ./cmd/sonovel
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonovel-windows-amd64
+          path: bin/sonovel.exe
+          retention-days: 7
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Build
+        run: go build -o ./bin/sonovel ./cmd/sonovel
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonovel-darwin-amd64
+          path: bin/sonovel
+          retention-days: 7
+
+  release:
+    needs: [test, build-windows, build-macos, build-macos]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sonovel-*
+          path: ./bin
+          merge-multiple: true
+      
+      - name: List binaries
+        run: ls -lh bin/
+      
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bin/sonovel-linux-amd64
+            bin/sonovel-windows-amd64.exe
+            bin/sonovel-darwin-amd64
+          generate_release_notes: true
+          tag_name: v${{ github.sha }}

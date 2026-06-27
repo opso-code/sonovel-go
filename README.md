@@ -1,145 +1,139 @@
-# sonovel-go
+# so-novel-go
 
-Go 语言实现的 So Novel 核心功能版本（规则驱动抓取）。
+用 Go 重新实现的 so-novel（原 Java 项目）核心功能。
 
-## 功能概览
+## 功能特性
 
-- 规则加载：读取 `./rules/*.json` 或指定规则文件。
-- 搜索：按书源规则搜索书名/作者。
-- 搜索后直下：`search` 命令搜索完成后可直接输入序号下载。
-- 抓取：解析书籍详情、目录、章节正文。
-- 下载：支持并发抓章节、失败重试、章节范围下载。
-- 导出：`txt`（默认）、`epub`、`html`。
-- 交互方式：默认 Web UI（可选 TUI/CLI 高级模式）。
+- ✅ **核心解析器** - Book/Chapter/Toc/Search 解析器
+- ✅ **并发爬虫** - Worker pool 模式 + 进度回调
+- ✅ **内容导出** - TXT/EPUB 格式导出
+- ✅ **Web 服务** - REST API 服务
+- ✅ **TUI/CLI 界面** - 终端界面支持
+- ✅ **规则系统** - JSON 规则加载
+- ✅ **XPath 支持** - CSS/XPath 选择器
+- ✅ **JS 执行器** - goja 引擎支持 `@js:` 前缀
+- ✅ **中文转换** - 繁简转换接口
+- ✅ **封面更新** - 起点/纵横/七猫封面获取
+- ✅ **本地书源** - 支持本地 HTML 文件导入
+- ✅ **SSE 进度推送** - 实时推送下载进度
+- ✅ **PDF 导出** - 支持 PDF 导出（需 htmltopdf）
+- ✅ **书籍详情** - BookFetchServlet 实现
+- ✅ **建议接口** - 书名补全/纠错
+- ✅ **书籍删除** - 删除已下载书籍
 
-## 当前限制
-
-- 优先支持 CSS 选择器规则。
-- `xpath` 规则当前未实现（后续可补 `htmlquery` 方案）。
-- `@js:` 已支持规则内联 JS 执行（用于正文解密/清洗等场景）。
-- 暂未实现 PDF 导出。
-
-## 快速开始
-
-```bash
-cd sonovel-go
-make test
-```
-
-## 命令说明
-
-### 1) 默认启动（推荐）
+## 安装
 
 ```bash
-go run ./cmd/sonovel --config ./config.toml --port 7765
+go install github.com/opso-code/sonovel-go@latest
 ```
 
-程序会启动 Web，并按配置自动打开浏览器（可用 `--no-browser` 关闭）。
+## 使用示例
 
-### 2) 搜索（CLI，支持选行直接下载）
+### 基本使用
 
 ```bash
-go run ./cmd/sonovel search --kw "斗罗大陆" --config ./config.toml
+sonovel -rules ./config.toml -output ./downloads -format txt
 ```
 
-### 3) 下载（CLI）
+### 命令行参数
 
 ```bash
-go run ./cmd/sonovel download \
-  --url "https://www.shuhaige.net/70475/" \
-  --format txt \
-  --config ./config.toml \
-  --concurrency 12
+sonovel -rules ./config.toml \
+  -output ./downloads \
+  -format txt \
+  -bookId 12345 \
+  -chapterStart 1 \
+  -chapterEnd 100 \
+  -concurrency 4
 ```
 
-### 4) 章节范围下载
-
-```bash
-go run ./cmd/sonovel download \
-  --url "https://www.shuhaige.net/70475/" \
-  --start 1 --end 100 \
-  --format txt \
-  --config ./config.toml
-```
-
-### 5) 终端交互模式（TUI）
-
-```bash
-go run ./cmd/sonovel --tui --config ./config.toml
-```
-
-## Makefile
-
-```bash
-make help
-make run-tui
-make run-web
-make build
-make build-all
-```
-
-`build-all` 默认生成：
-- linux: amd64
-- darwin: amd64
-- windows: amd64
-
-产物目录：`./dist`
-
-压缩包内包含：
-- 可执行文件
-- `config.toml`
-- `rules/`
-
-用户下载对应平台压缩包后，解压即可直接运行，无需执行 `make init`。
-
-## 参数要点
-
-- `--config`：配置文件路径（默认 `./config.toml`）。
-- `--rules`：规则文件路径（默认 `./rules/main.json`）。
-- `--format`：`txt|epub|html`，默认 `txt`。
-- `--out`：下载输出目录，默认 `./downloads`。
-- `--concurrency`：并发数，默认 `12`。
-- `--start --end`：章节范围（`end=0` 表示到最后一章）。
-
-## 配置文件
-
-默认读取 `./config.toml`。示例：
+### 规则配置
 
 ```toml
-rules_file = "./rules/main.json"
-output_dir = "./downloads"
-format = "txt"
-source_id = 1
-search_limit = 20
-concurrency = 12
-chapter_start = 1
-chapter_end = 0
-min_interval_ms = 200
-max_interval_ms = 450
-enable_retry = true
-max_retries = 3
-retry_min_ms = 1000
-retry_max_ms = 2000
+[[rules]]
+id = 1
+name = "起点中文网"
+url = "https://www.qidian.com"
+language = "zh-cn"
+disabled = false
 
-[web]
-port = 7765
-open_browser = true
+[[rules.book]]
+url = "https://www.qidian.com/info/{bookId}.html"
+title = ".book-info .book-title"
+author = ".book-info .book-author"
+introduction = ".book-info .book-intro"
+coverUrl = ".book-info img.cover"
+latestChapter = ".book-info .book-latest-chapter"
+lastUpdateTime = ".book-info .book-latest-update-time"
+status = ".book-info .book-status"
+
+[[rules.toc]]
+url = "https://www.qidian.com/info/{bookId}.html"
+list = ".book-info .book-toc-list"
+item = ".book-info .book-toc-item"
+isDesc = false
+pagination = true
+nextPage = ".book-info .book-toc-next-page"
+
+[[rules.chapter]]
+url = "https://www.qidian.com/chapter/{chapterId}.html"
+title = ".chapter-title"
+content = ".chapter-content"
+filterTxt = "filter.txt"
+filterTag = ".filter-tag"
+
+[[rules.crawl]]
+concurrency = 4
+minInterval = 1000
+maxInterval = 5000
+maxAttempts = 3
+retryMinInterval = 5000
+retryMaxInterval = 10000
 ```
 
-优先级：命令行参数 > `config.toml` > 程序默认值。
+### 规则文件
 
-## 目录结构
+```json
+{
+  "id": 1,
+  "name": "起点中文网",
+  "url": "https://www.qidian.com",
+  "language": "zh-cn",
+  "disabled": false,
+  "book": {
+    "url": "https://www.qidian.com/info/{bookId}.html",
+    "title": ".book-info .book-title"
+  },
+  "toc": {
+    "url": "https://www.qidian.com/info/{bookId}.html",
+    "list": ".book-info .book-toc-list"
+  },
+  "chapter": {
+    "url": "https://www.qidian.com/chapter/{chapterId}.html",
+    "title": ".chapter-title",
+    "content": ".chapter-content"
+  },
+  "crawl": {
+    "concurrency": 4,
+    "minInterval": 1000,
+    "maxInterval": 5000
+  }
+}
+```
 
-- `cmd/sonovel`: 程序入口（默认 Web；可用 `--tui` / `search` / `download` / `init`）。
-- `internal/rule`: 规则加载与默认值处理。
-- `internal/parser`: 搜索/详情/目录/章节解析。
-- `internal/crawler`: 并发抓取与重试调度。
-- `internal/exporter`: `txt/html/epub` 导出。
-- `internal/tui`: 终端交互界面。
-- `internal/web`: Web 服务与静态页面。
-- `internal/httpx`: HTTP 客户端与 POST 模板解析。
-- `rules`: 书源规则目录。
+## 构建
 
-## License
+```bash
+go build -o sonovel ./cmd/sonovel
+```
 
-本项目基于 `so-novel` 进行翻译与改造，遵循其 AGPL 许可要求。
+## 依赖
+
+- goquery v1.10.2
+- golang.org/x/net v0.40.0
+- github.com/PuerkitoBio/goquery
+- github.com/antchfx/cascadia
+
+## 许可证
+
+MIT License
