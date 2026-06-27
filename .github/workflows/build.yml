@@ -24,14 +24,14 @@ jobs:
       - name: Run tests
         run: go test ./...
       
-      - name: Build
-        run: go build -o ./bin/sonovel ./cmd/sonovel
+      - name: Build Linux
+        run: go build -o ./bin/sonovel-linux-amd64 ./cmd/sonovel
       
-      - name: Upload artifact
+      - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: sonovel-linux-amd64
-          path: bin/sonovel
+          path: bin/sonovel-linux-amd64
           retention-days: 7
 
   build-windows:
@@ -48,14 +48,14 @@ jobs:
       - name: Install dependencies
         run: go mod download
       
-      - name: Build
-        run: go build -o ./bin/sonovel.exe ./cmd/sonovel
+      - name: Build Windows
+        run: go build -o ./bin/sonovel-windows-amd64.exe ./cmd/sonovel
       
-      - name: Upload artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: sonovel-windows-amd64
-          path: bin/sonovel.exe
+          path: bin/sonovel-windows-amd64.exe
           retention-days: 7
 
   build-macos:
@@ -72,28 +72,22 @@ jobs:
       - name: Install dependencies
         run: go mod download
       
-      - name: Build
-        run: go build -o ./bin/sonovel ./cmd/sonovel
+      - name: Build macOS
+        run: go build -o ./bin/sonovel-darwin-amd64 ./cmd/sonovel
       
-      - name: Upload artifact
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: sonovel-darwin-amd64
-          path: bin/sonovel
+          path: bin/sonovel-darwin-amd64
           retention-days: 7
 
   release:
-    needs: [test, build-windows, build-macos, build-macos]
+    needs: [test, build-windows, build-macos]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
       
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -106,7 +100,7 @@ jobs:
         run: ls -lh bin/
       
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             bin/sonovel-linux-amd64
@@ -114,3 +108,4 @@ jobs:
             bin/sonovel-darwin-amd64
           generate_release_notes: true
           tag_name: v${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
