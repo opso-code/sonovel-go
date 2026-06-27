@@ -39,7 +39,7 @@ jobs:
 
             for (const m of matrix) {
               console.log(`Building ${m.os}-${m.arch}...`);
-              exec(`GOOS=${m.os} GOARCH=${m.arch} CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/${m.os}-${m.arch}/go-sonovel${m.os === 'windows' ? '.exe' : ''} ./cmd/sonovel`);
+              core.exec(`GOOS=${m.os} GOARCH=${m.arch} CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/${m.os}-${m.arch}/go-sonovel${m.os === 'windows' ? '.exe' : ''} ./cmd/sonovel`);
             }
 
       - name: List built binaries
