@@ -31,13 +31,13 @@ jobs:
       
       - name: Build Linux
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/sonovel-linux-amd64 ./cmd/sonovel
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel ./cmd/sonovel
       
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sonovel-linux-amd64
-          path: bin/sonovel-linux-amd64
+          name: go-sonovel-linux-amd64
+          path: bin/go-sonovel
           retention-days: 7
 
   build-windows:
@@ -56,13 +56,13 @@ jobs:
       
       - name: Build Windows
         run: |
-          go build -ldflags="-s -w" -o ./bin/sonovel-windows-amd64.exe ./cmd/sonovel
+          go build -ldflags="-s -w" -o ./bin/go-sonovel.exe ./cmd/sonovel
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sonovel-windows-amd64
-          path: bin/sonovel-windows-amd64.exe
+          name: go-sonovel-windows-amd64
+          path: bin/go-sonovel.exe
           retention-days: 7
 
   build-macos:
@@ -81,13 +81,13 @@ jobs:
       
       - name: Build macOS
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/sonovel-darwin-amd64 ./cmd/sonovel
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel ./cmd/sonovel
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sonovel-darwin-amd64
-          path: bin/sonovel-darwin-amd64
+          name: go-sonovel-darwin-amd64
+          path: bin/go-sonovel
           retention-days: 7
 
   release:
@@ -99,7 +99,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: sonovel-*
+          pattern: go-sonovel-*
           path: ./bin
           merge-multiple: true
       
@@ -110,9 +110,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            bin/sonovel-linux-amd64
-            bin/sonovel-windows-amd64.exe
-            bin/sonovel-darwin-amd64
+            bin/go-sonovel-linux-amd64
+            bin/go-sonovel-windows-amd64.exe
+            bin/go-sonovel-darwin-amd64
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
           body: |
@@ -123,8 +123,8 @@ jobs:
             - **Branch**: ${{ github.ref }}
             
             ### 📄 更新内容
-            - Linux: `bin/sonovel-linux-amd64`
-            - Windows: `bin/sonovel-windows-amd64.exe`
-            - macOS: `bin/sonovel-darwin-amd64`
+            - Linux: `bin/go-sonovel-linux-amd64`
+            - Windows: `bin/go-sonovel-windows-amd64.exe`
+            - macOS: `bin/go-sonovel-darwin-amd64`
             
             [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})

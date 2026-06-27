@@ -5,7 +5,7 @@ VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 
 # 构建
 build:
-	go build -ldflags="-s -w" -o ./bin/sonovel ./cmd/sonovel
+	go build -ldflags="-s -w" -o ./bin/go-sonovel ./cmd/sonovel
 
 # 测试
 test:
@@ -24,9 +24,9 @@ release:
 # 构建所有平台
 build-all:
 	@echo "Building for all platforms..."
-	@echo "Linux: go build -ldflags=\"-s -w\" -o bin/sonovel-linux-amd64 ./cmd/sonovel"
-	@echo "Windows: go build -ldflags=\"-s -w\" -o bin/sonovel-windows-amd64.exe ./cmd/sonovel"
-	@echo "macOS: go build -ldflags=\"-s -w\" -o bin/sonovel-darwin-amd64 ./cmd/sonovel"
+	@echo "Linux: go build -ldflags=\"-s -w\" -o bin/go-sonovel ./cmd/sonovel"
+	@echo "Windows: go build -ldflags=\"-s -w\" -o bin/go-sonovel.exe ./cmd/sonovel"
+	@echo "macOS: go build -ldflags=\"-s -w\" -o bin/go-sonovel ./cmd/sonovel"
 
 # 验证
 verify:
