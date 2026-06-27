@@ -41,3 +41,37 @@ verify:
 	go mod download
 	go test ./...
 	go build ./...
+
+# 跨平台打包（用于 CI/CD）
+dist:
+	@echo "Creating release archives..."
+	mkdir -p ./release/linux-amd64 \
+	          ./release/windows-amd64 ./release/darwin-amd64
+
+	# Linux amd64
+	cp bin/linux-amd64/go-sonovel ./release/linux-amd64/
+	cp -r rules ./release/linux-amd64/
+	cp config.toml ./release/linux-amd64/ || true
+	cp README.md ./release/linux-amd64/ || true
+	cp LICENSE ./release/linux-amd64/ || true
+	tar czf go-sonovel-linux-amd64.tar.gz -C ./release/linux-amd64 .
+
+	# Windows amd64
+	cp bin/windows-amd64/go-sonovel.exe ./release/windows-amd64/
+	cp -r rules ./release/windows-amd64/
+	cp config.toml ./release/windows-amd64/ || true
+	cp README.md ./release/windows-amd64/ || true
+	cp LICENSE ./release/windows-amd64/ || true
+	cd ./release/windows-amd64 && zip -r ../../go-sonovel-windows-amd64.zip .
+	cd ../..
+
+	# macOS amd64
+	cp bin/darwin-amd64/go-sonovel ./release/darwin-amd64/
+	cp -r rules ./release/darwin-amd64/
+	cp config.toml ./release/darwin-amd64/ || true
+	cp README.md ./release/darwin-amd64/ || true
+	cp LICENSE ./release/darwin-amd64/ || true
+	tar czf go-sonovel-darwin-amd64.tar.gz -C ./release/darwin-amd64 .
+
+	@echo "Release archives created:"
+	ls -lh ./release/*.tar.gz ./release/*.zip

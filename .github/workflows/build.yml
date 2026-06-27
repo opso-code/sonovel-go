@@ -12,83 +12,44 @@ on:
         default: 'v0.1.0'
 
 jobs:
-  test:
+  test-and-release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-          cache: true
-      
-      - name: Run tests
-        run: go test ./...
 
-  release:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
+          go-version-file: 'go.mod'  # 自动从 go.mod 读取版本
           cache: true
-      
-      - name: Build Linux
+          cache-dependency-path: 'go.sum'
+
+      - name: Run tests
+        run: go test ./... -v
+
+      - name: Build all platforms (matrix)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const matrix = [
+              { os: 'linux', arch: 'amd64' },
+              { os: 'windows', arch: 'amd64' },
+              { os: 'darwin', arch: 'amd64' },
+            ];
+
+            for (const m of matrix) {
+              console.log(`Building ${m.os}-${m.arch}...`);
+              exec(`GOOS=${m.os} GOARCH=${m.arch} CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/${m.os}-${m.arch}/go-sonovel${m.os === 'windows' ? '.exe' : ''} ./cmd/sonovel`);
+            }
+
+      - name: List built binaries
         run: |
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
-          ls -lh ./bin/
-      
-      - name: Build Windows
-        run: |
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
-          ls -lh ./bin/
-      
-      - name: Build macOS
-        run: |
-          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
-            go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
-          ls -lh ./bin/
-      
-      - name: Create release archives
-        run: |
-          set -euo pipefail
-      
-          mkdir -p ./release/linux ./release/windows ./release/macos
-      
-          # Linux
-          cp bin/go-sonovel-linux-amd64 ./release/linux/go-sonovel
-          cp -r rules ./release/linux/
-          cp config.toml ./release/linux/ || true
-          cp README.md ./release/linux/ || true
-          cp LICENSE ./release/linux/ || true
-          tar czf go-sonovel-linux-amd64.tar.gz -C ./release/linux go-sonovel rules/ README.md config.toml LICENSE
-      
-          # Windows
-          cp bin/go-sonovel-windows-amd64.exe ./release/windows/go-sonovel.exe
-          cp -r rules ./release/windows/
-          cp config.toml ./release/windows/ || true
-          cp README.md ./release/windows/ || true
-          cp LICENSE ./release/windows/ || true
-          cd ./release/windows && zip -r ../../go-sonovel-windows-amd64.zip go-sonovel.exe rules/ README.md config.toml LICENSE
-          cd ../..
-      
-          # macOS
-          cp bin/go-sonovel-darwin-amd64 ./release/macos/go-sonovel
-          cp -r rules ./release/macos/
-          cp config.toml ./release/macos/ || true
-          cp README.md ./release/macos/ || true
-          cp LICENSE ./release/macos/ || true
-          tar czf go-sonovel-darwin-amd64.tar.gz -C ./release/macos go-sonovel rules/ README.md config.toml LICENSE
-      
-          ls -lh ./release/*
-      
+          ls -lh bin/*/
+
+      # 使用 Makefile 进行打包（复用已有的 build-all 逻辑）
+      - name: Create release archives using Makefile
+        run: make dist
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -97,23 +58,40 @@ jobs:
             go-sonovel-windows-amd64.zip
             go-sonovel-darwin-amd64.tar.gz
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
           body: |
             ## Release ${{ github.event.inputs.tag || github.ref_name }}
-            
+
             ### 📦 构建信息
-            - **Commit**: ${{ github.sha }}
-            - **Branch**: ${{ github.ref }}
-            
+            - **Commit**: [`${{ github.sha }}`](https://github.com/opso-code/sonovel-go/commit/${{ github.sha }})
+            - **Branch**: ${{ github.ref_name == 'main' && 'main (default)' || github.ref_name }}
+
             ### 📄 下载
-            
-            #### Linux (x86_64)
-            - `go-sonovel-linux-amd64.tar.gz`
-            
-            #### Windows (x86_64)
-            - `go-sonovel-windows-amd64.zip`
-            
-            #### macOS (Intel x86_64)
-            - `go-sonovel-darwin-amd64.tar.gz`
-            
+
+            <details>
+              <summary>🔽 点击展开查看下载链接</summary>
+
+            #### Linux x86_64 (amd64)
+            - `go-sonovel-linux-amd64.tar.gz` (~500KB)
+              ```bash
+              tar xzf go-sonovel-linux-amd64.tar.gz
+              ./go-sonovel --help
+              ```
+
+            #### Windows x86_64 (amd64)
+            - `go-sonovel-windows-amd64.zip` (~500KB)
+              ```powershell
+              Expand-Archive -Path go-sonovel-windows-amd64.zip -DestinationPath .
+              .\go-sonovel.exe --help
+              ```
+
+            #### macOS Intel x86_64 (amd64)
+            - `go-sonovel-darwin-amd64.tar.gz` (~500KB)
+              ```bash
+              tar xzf go-sonovel-darwin-amd64.tar.gz
+              ./go-sonovel --help
+              ```
+
+              </details>
+
             [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})
