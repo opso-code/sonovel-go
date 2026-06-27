@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: go-sonovel-linux-amd64
-          path: bin/go-sonovel
+          path: bin/go-sonovel-linux-amd64
           retention-days: 7
 
   build-windows:
@@ -56,13 +56,13 @@ jobs:
       
       - name: Build Windows
         run: |
-          go build -ldflags="-s -w" -o ./bin/go-sonovel.exe ./cmd/sonovel
+          go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
       
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: go-sonovel-windows-amd64
-          path: bin/go-sonovel.exe
+          path: bin/go-sonovel-windows-amd64.exe
           retention-days: 7
 
   build-macos:
@@ -81,13 +81,13 @@ jobs:
       
       - name: Build macOS
         run: |
-          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel ./cmd/sonovel
+          CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
       
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: go-sonovel-darwin-amd64
-          path: bin/go-sonovel
+          path: bin/go-sonovel-darwin-amd64
           retention-days: 7
 
   release:
