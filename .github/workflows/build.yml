@@ -55,6 +55,7 @@ jobs:
         run: go mod download
       
       - name: Build Windows
+        shell: bash
         run: |
           GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
       
