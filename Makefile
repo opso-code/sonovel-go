@@ -11,16 +11,16 @@ build:
 build-all:
 	@echo "Building for all platforms..."
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" \
-	  -o ./bin/go-sonovel-linux-amd64 ./cmd/sonovel
-	
+	  -o ./bin/linux-amd64/go-sonovel ./cmd/sonovel
+
 	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" \
-	  -o ./bin/go-sonovel-windows-amd64.exe ./cmd/sonovel
-	
+	  -o ./bin/windows-amd64/go-sonovel.exe ./cmd/sonovel
+
 	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" \
-	  -o ./bin/go-sonovel-darwin-amd64 ./cmd/sonovel
-	
+	  -o ./bin/darwin-amd64/go-sonovel ./cmd/sonovel
+
 	@echo "All platforms built successfully!"
-	@ls -lh bin/
+	ls -lh bin/*/
 
 # 测试
 test:
