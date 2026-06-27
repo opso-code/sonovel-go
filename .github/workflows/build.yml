@@ -2,9 +2,14 @@ name: Build and Release
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        default: 'v0.1.0'
 
 jobs:
   test:
@@ -85,9 +90,6 @@ jobs:
   release:
     needs: [test, build-windows, build-macos]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       
@@ -108,11 +110,18 @@ jobs:
             bin/sonovel-linux-amd64
             bin/sonovel-windows-amd64.exe
             bin/sonovel-darwin-amd64
-          tag_name: v${{ github.sha }}
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
           body: |
-            ## Release ${{ github.sha }}
+            ## Release ${{ github.event.inputs.tag || github.ref_name }}
+            
+            ### 📦 构建信息
+            - **Commit**: ${{ github.sha }}
+            - **Branch**: ${{ github.ref }}
+            
+            ### 📄 更新内容
             - Linux: `bin/sonovel-linux-amd64`
             - Windows: `bin/sonovel-windows-amd64.exe`
             - macOS: `bin/sonovel-darwin-amd64`
-            - [Full Changelog](https://github.com/opso-code/sonovel-go/compare/v${{ github.event.previous_tag || '0' }}..${{ github.sha }})
-          generate_release_notes: false
+            
+            [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ github.event.release && github.event.release.tag_name || '' }}..${{ github.sha }})
