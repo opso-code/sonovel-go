@@ -14,7 +14,7 @@ func selectField(sel *goquery.Selection, query string, base *url.URL) string {
 		return ""
 	}
 	if strings.HasPrefix(q, "/") {
-		return ""
+		return util.SelectAttr(sel, query, "content", base)
 	}
 	if strings.HasPrefix(strings.TrimSpace(q), "meta[") {
 		return util.SelectAttr(sel, query, "content", base)

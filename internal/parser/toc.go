@@ -48,9 +48,6 @@ func (p *TocParser) ParseAll(bookURL string) ([]model.ChapterItem, error) {
 	}
 
 	q, _ := util.SplitQueryAndJS(r.Item)
-	if strings.HasPrefix(q, "/") {
-		return nil, fmt.Errorf("xpath not supported in toc.item: %s", r.Item)
-	}
 
 	items := make([]model.ChapterItem, 0)
 	order := 1

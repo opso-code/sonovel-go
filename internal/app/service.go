@@ -70,9 +70,6 @@ func (s *Service) pickRuleForSearch() (*model.Rule, error) {
 	if r.Search == nil || r.Search.Disabled {
 		return nil, fmt.Errorf("source %d does not support search", r.ID)
 	}
-	if strings.HasPrefix(strings.TrimSpace(r.Search.Result), "/") {
-		return nil, fmt.Errorf("source %d search uses xpath, not supported yet", r.ID)
-	}
 	return r, nil
 }
 

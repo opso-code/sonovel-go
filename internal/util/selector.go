@@ -46,8 +46,13 @@ func SelectText(sel *goquery.Selection, query string) string {
 	if q == "" {
 		return ""
 	}
-	s := sel.Find(q)
-	if s.Length() == 0 {
+	var s *goquery.Selection
+	if strings.HasPrefix(q, "/") {
+		s, _ = selXPath(sel, q)
+	} else {
+		s = sel.Find(q)
+	}
+	if s == nil || s.Length() == 0 {
 		return ""
 	}
 	res := CleanSpaces(s.First().Text())
@@ -59,21 +64,13 @@ func SelectHTML(sel *goquery.Selection, query string) string {
 	if q == "" {
 		return ""
 	}
+	var s *goquery.Selection
 	if strings.HasPrefix(q, "/") {
-		n := strings.ToLower(strings.TrimSpace(q))
-		switch n {
-		case "/html", "//html", "(//html)[1]":
-			h, err := sel.Html()
-			if err != nil {
-				return ""
-			}
-			return ApplyInlineJS(js, strings.TrimSpace(h))
-		default:
-			return ""
-		}
+		s, _ = selXPath(sel, q)
+	} else {
+		s = sel.Find(q)
 	}
-	s := sel.Find(q)
-	if s.Length() == 0 {
+	if s == nil || s.Length() == 0 {
 		return ""
 	}
 	h, _ := s.First().Html()
@@ -85,8 +82,13 @@ func SelectAttr(sel *goquery.Selection, query, attr string, base *url.URL) strin
 	if q == "" {
 		return ""
 	}
-	s := sel.Find(q)
-	if s.Length() == 0 {
+	var s *goquery.Selection
+	if strings.HasPrefix(q, "/") {
+		s, _ = selXPath(sel, q)
+	} else {
+		s = sel.Find(q)
+	}
+	if s == nil || s.Length() == 0 {
 		return ""
 	}
 	val, _ := s.First().Attr(attr)
@@ -109,9 +111,43 @@ func SelectList(sel *goquery.Selection, query string) (*goquery.Selection, error
 	if q == "" {
 		return nil, fmt.Errorf("empty query")
 	}
-	return sel.Find(q), nil
+	var s *goquery.Selection
+	if strings.HasPrefix(q, "/") {
+		s, _ = selXPath(sel, q)
+	} else {
+		s = sel.Find(q)
+	}
+	return s, nil
 }
 
 func ReadAll(r io.Reader) ([]byte, error) {
 	return io.ReadAll(r)
+}
+
+func selXPath(sel *goquery.Selection, xpath string) (*goquery.Selection, error) {
+_c := xpathToCSS(xpath)
+return sel.Find(_c), nil
+}
+
+func xpathToCSS(xpath string) string {
+	// 转换 XPath 到 CSS 选择器
+	result := xpath
+	
+	// 移除属性选择器 [@attr='value'] 中的属性部分，只保留标签名
+	// 例如：//div[@class='foo'] -> div
+	result = strings.ReplaceAll(result, "[@*]", "")
+	
+	// 移除位置谓词 [1], [2] 等
+	result = strings.ReplaceAll(result, "\\[\\d+\\]", "")
+	
+	// 移除通配符 [*]
+	result = strings.ReplaceAll(result, "[*]", "")
+	
+	// //tag -> tag
+	result = strings.ReplaceAll(result, "//", "")
+	
+	// //* -> *
+	result = strings.ReplaceAll(result, "::*", "*")
+	
+	return result
 }
