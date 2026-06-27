@@ -104,13 +104,16 @@ jobs:
           path: ./bin
           merge-multiple: true
       
-      - name: Copy rules to release
+      - name: Copy files to release
         run: |
           mkdir -p ./release
           cp -r rules ./release/
           cp config.toml ./release/ 2>/dev/null || true
           cp README.md ./release/ 2>/dev/null || true
           cp LICENSE ./release/ 2>/dev/null || true
+          cp bin/go-sonovel-linux-amd64 ./release/ 2>/dev/null || true
+          cp bin/go-sonovel-windows-amd64.exe ./release/ 2>/dev/null || true
+          cp bin/go-sonovel-darwin-amd64 ./release/ 2>/dev/null || true
       
       - name: Package release archives
         run: |
