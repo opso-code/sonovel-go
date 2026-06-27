@@ -46,9 +46,13 @@ jobs:
 
       - name: Build Binary
         run: |
+          BINARY_NAME="go-sonovel"
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_NAME="go-sonovel.exe"
+          fi
           GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} CGO_ENABLED=0 \
           go build -ldflags="-s -w" \
-          -o ./bin/go-sonovel ${{ matrix.os == 'windows' && '.exe' || '' }} ./cmd/sonovel
+          -o ./bin/$BINARY_NAME ./cmd/sonovel
 
       - name: Prepare Assets
         run: |
@@ -101,6 +105,7 @@ jobs:
             - **Branch**: ${{ github.ref_name == 'main' && 'main (default)' || github.ref_name }}
 
             [View Changes](https://github.com/opso-code/sonovel-go/compare/${{ steps.previoustag.outputs.previous_tag }}..${{ github.event.inputs.tag || github.ref_name }})
+
 
 
 
